@@ -1,0 +1,40 @@
+:root {
+  --bg: #fefefe;
+  --fg: #1a1a1a;
+  --font: Georgia, serif;
+  --size: 18px;
+  --line: 1.7;
+  --max-w: 680px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --fg: #e0e0e0;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: var(--size);
+  line-height: var(--line);
+  max-width: var(--max-w);
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: #3b82f6;
+}
+
+.theme-sepia {
+  --bg: #f4ecd8;
+  --fg: #433422;
+}

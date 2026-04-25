@@ -1,0 +1,196 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: 05-dark-mode.spec.ts >> Dark mode >> header buttons have visible text in dark mode
+- Location: e2e/05-dark-mode.spec.ts:77:3
+
+# Error details
+
+```
+Error: expect(received).not.toBe(expected) // Object.is equality
+
+Expected: not "rgb(0, 0, 0)"
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - button "All Books" [ref=e5] [cursor=pointer]
+    - generic [ref=e6]:
+      - button "Sci-Fi" [ref=e7] [cursor=pointer]
+      - button "Classics" [ref=e8] [cursor=pointer]
+    - button "+ Add selected to collection" [disabled] [ref=e9]
+    - generic [ref=e10]:
+      - textbox "New collection…" [ref=e11]
+      - button "+" [ref=e12] [cursor=pointer]
+  - generic [ref=e13]:
+    - banner [ref=e14]:
+      - generic [ref=e15]:
+        - heading "xCalibre" [level=1] [ref=e16]
+        - paragraph [ref=e17]: Local-first ebook reader
+      - generic [ref=e18]:
+        - button "Import Calibre" [ref=e19] [cursor=pointer]
+        - button "Repair library" [ref=e20] [cursor=pointer]
+        - searchbox "Search title, author, text…" [ref=e21]
+        - button "Settings" [ref=e22] [cursor=pointer]
+    - generic [ref=e23]:
+      - combobox [ref=e24]:
+        - option "All formats" [selected]
+        - option "EPUB"
+        - option "PDF"
+        - option "MOBI"
+        - option "AZW3"
+        - option "CBZ"
+        - option "CBR"
+        - option "TXT"
+      - combobox [ref=e25]:
+        - option "All statuses" [selected]
+        - option "PENDING"
+        - option "READY_TO_PUSH"
+        - option "PUSHING"
+        - option "RETRYING"
+        - option "COMPLETED"
+        - option "FAILED"
+      - textbox "Author…" [ref=e26]
+      - combobox [ref=e27]:
+        - option "All series" [selected]
+      - combobox [ref=e28]:
+        - option "All tags" [selected]
+        - option "fiction"
+        - option "sci-fi"
+        - option "classic"
+      - button "Clear" [ref=e29] [cursor=pointer]
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32] [cursor=pointer]:
+          - checkbox [ref=e34]
+          - generic [ref=e36]: epub
+          - generic [ref=e37]:
+            - paragraph [ref=e38]: The Great Gatsby
+            - paragraph [ref=e39]: F. Scott Fitzgerald
+        - generic [ref=e42] [cursor=pointer]:
+          - checkbox [ref=e44]
+          - generic [ref=e46]: pdf
+          - generic [ref=e47]:
+            - paragraph [ref=e48]: "1984"
+            - paragraph [ref=e49]: George Orwell
+        - generic [ref=e50] [cursor=pointer]:
+          - checkbox [ref=e52]
+          - generic [ref=e54]: mobi
+          - generic [ref=e55]:
+            - paragraph [ref=e56]: Dune
+            - paragraph [ref=e57]: Frank Herbert
+        - generic [ref=e60] [cursor=pointer]:
+          - checkbox [ref=e62]
+          - generic [ref=e64]: epub
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Foundation
+            - paragraph [ref=e67]: Isaac Asimov
+        - generic [ref=e68] [cursor=pointer]:
+          - checkbox [ref=e70]
+          - generic [ref=e72]: epub
+          - generic [ref=e73]:
+            - paragraph [ref=e74]: Neuromancer
+            - paragraph [ref=e75]: William Gibson
+```
+
+# Test source
+
+```ts
+  1  | import { test, expect } from "@playwright/test"
+  2  | import { loadApp } from "./helpers"
+  3  | 
+  4  | test.describe("Dark mode", () => {
+  5  |   test("html element has no 'dark' class by default (light theme)", async ({ page }) => {
+  6  |     await loadApp(page)
+  7  |     const hasDark = await page.evaluate(() =>
+  8  |       document.documentElement.classList.contains("dark"),
+  9  |     )
+  10 |     expect(hasDark).toBe(false)
+  11 |   })
+  12 | 
+  13 |   test("switching theme to dark adds 'dark' class to <html>", async ({ page }) => {
+  14 |     await loadApp(page)
+  15 |     // Open settings and switch theme to Dark
+  16 |     await page.getByRole("button", { name: "Settings" }).click()
+  17 |     const themeSelect = page.locator("select").first()
+  18 |     await themeSelect.selectOption("dark")
+  19 |     await page.getByRole("button", { name: "Save" }).click()
+  20 | 
+  21 |     // After Fix 5, the useEffect in App.tsx syncs theme → document class
+  22 |     await page.waitForFunction(() =>
+  23 |       document.documentElement.classList.contains("dark"),
+  24 |     )
+  25 |     const hasDark = await page.evaluate(() =>
+  26 |       document.documentElement.classList.contains("dark"),
+  27 |     )
+  28 |     expect(hasDark).toBe(true)
+  29 |   })
+  30 | 
+  31 |   test("switching back to light removes 'dark' class", async ({ page }) => {
+  32 |     await loadApp(page)
+  33 | 
+  34 |     // Enable dark
+  35 |     await page.getByRole("button", { name: "Settings" }).click()
+  36 |     await page.locator("select").first().selectOption("dark")
+  37 |     await page.getByRole("button", { name: "Save" }).click()
+  38 |     await page.waitForFunction(() => document.documentElement.classList.contains("dark"))
+  39 | 
+  40 |     // Back to light
+  41 |     await page.getByRole("button", { name: "Settings" }).click()
+  42 |     await page.locator("select").first().selectOption("light")
+  43 |     await page.getByRole("button", { name: "Save" }).click()
+  44 |     await page.waitForFunction(() => !document.documentElement.classList.contains("dark"))
+  45 | 
+  46 |     const hasDark = await page.evaluate(() =>
+  47 |       document.documentElement.classList.contains("dark"),
+  48 |     )
+  49 |     expect(hasDark).toBe(false)
+  50 |   })
+  51 | 
+  52 |   test("app root has correct dark background in dark mode", async ({ page }) => {
+  53 |     await loadApp(page)
+  54 |     // Force dark class on html to test Tailwind dark: styles
+  55 |     await page.evaluate(() => document.documentElement.classList.add("dark"))
+  56 | 
+  57 |     const bgColor = await page.evaluate(() => {
+  58 |       const root = document.querySelector(".h-screen, .min-h-screen") as HTMLElement
+  59 |       return root ? window.getComputedStyle(root).backgroundColor : ""
+  60 |     })
+  61 |     // dark:bg-gray-900 = rgb(17, 24, 39)
+  62 |     expect(bgColor).toBe("rgb(17, 24, 39)")
+  63 |   })
+  64 | 
+  65 |   test("sidebar text is visible in dark mode", async ({ page }) => {
+  66 |     await loadApp(page)
+  67 |     await page.evaluate(() => document.documentElement.classList.add("dark"))
+  68 |     await expect(page.getByText("All Books")).toBeVisible()
+  69 |     // Check the element is readable (not same color as dark background)
+  70 |     const color = await page.getByText("All Books").evaluate(
+  71 |       (el) => window.getComputedStyle(el).color,
+  72 |     )
+  73 |     // Should not be dark (not rgb(17, 24, 39) or similar dark)
+  74 |     expect(color).not.toBe("rgb(17, 24, 39)")
+  75 |   })
+  76 | 
+  77 |   test("header buttons have visible text in dark mode", async ({ page }) => {
+  78 |     await loadApp(page)
+  79 |     await page.evaluate(() => document.documentElement.classList.add("dark"))
+  80 |     // After Fix 4, border buttons get dark:text-gray-300
+  81 |     const repairBtn = page.getByRole("button", { name: "Repair library" })
+  82 |     await expect(repairBtn).toBeVisible()
+  83 |     const color = await repairBtn.evaluate((el) => window.getComputedStyle(el).color)
+  84 |     // dark:text-gray-300 = rgb(209, 213, 219), not black or invisible
+> 85 |     expect(color).not.toBe("rgb(0, 0, 0)")
+     |                       ^ Error: expect(received).not.toBe(expected) // Object.is equality
+  86 |   })
+  87 | })
+  88 | 
+```

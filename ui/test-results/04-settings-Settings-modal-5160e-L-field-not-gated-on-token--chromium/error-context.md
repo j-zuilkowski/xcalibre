@@ -1,0 +1,239 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: 04-settings.spec.ts >> Settings modal >> General section always shows Server URL field (not gated on token)
+- Location: e2e/04-settings.spec.ts:17:3
+
+# Error details
+
+```
+Error: expect(locator).toBeVisible() failed
+
+Locator: getByText('Server URL')
+Expected: visible
+Timeout: 8000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "toBeVisible" with timeout 8000ms
+  - waiting for getByText('Server URL')
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - button "All Books" [ref=e5] [cursor=pointer]
+    - generic [ref=e6]:
+      - button "Sci-Fi" [ref=e7] [cursor=pointer]
+      - button "Classics" [ref=e8] [cursor=pointer]
+    - button "+ Add selected to collection" [disabled] [ref=e9]
+    - generic [ref=e10]:
+      - textbox "New collection…" [ref=e11]
+      - button "+" [ref=e12] [cursor=pointer]
+  - generic [ref=e13]:
+    - banner [ref=e14]:
+      - generic [ref=e15]:
+        - heading "xCalibre" [level=1] [ref=e16]
+        - paragraph [ref=e17]: Local-first ebook reader
+      - generic [ref=e18]:
+        - button "Import Calibre" [ref=e19] [cursor=pointer]
+        - button "Repair library" [ref=e20] [cursor=pointer]
+        - searchbox "Search title, author, text…" [ref=e21]
+        - button "Settings" [active] [ref=e22] [cursor=pointer]
+    - generic [ref=e23]:
+      - combobox [ref=e24]:
+        - option "All formats" [selected]
+        - option "EPUB"
+        - option "PDF"
+        - option "MOBI"
+        - option "AZW3"
+        - option "CBZ"
+        - option "CBR"
+        - option "TXT"
+      - combobox [ref=e25]:
+        - option "All statuses" [selected]
+        - option "PENDING"
+        - option "READY_TO_PUSH"
+        - option "PUSHING"
+        - option "RETRYING"
+        - option "COMPLETED"
+        - option "FAILED"
+      - textbox "Author…" [ref=e26]
+      - combobox [ref=e27]:
+        - option "All series" [selected]
+      - combobox [ref=e28]:
+        - option "All tags" [selected]
+        - option "fiction"
+        - option "sci-fi"
+        - option "classic"
+      - button "Clear" [ref=e29] [cursor=pointer]
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32] [cursor=pointer]:
+          - checkbox [ref=e34]
+          - generic [ref=e36]: epub
+          - generic [ref=e37]:
+            - paragraph [ref=e38]: The Great Gatsby
+            - paragraph [ref=e39]: F. Scott Fitzgerald
+        - generic [ref=e42] [cursor=pointer]:
+          - checkbox [ref=e44]
+          - generic [ref=e46]: pdf
+          - generic [ref=e47]:
+            - paragraph [ref=e48]: "1984"
+            - paragraph [ref=e49]: George Orwell
+        - generic [ref=e50] [cursor=pointer]:
+          - checkbox [ref=e52]
+          - generic [ref=e54]: mobi
+          - generic [ref=e55]:
+            - paragraph [ref=e56]: Dune
+            - paragraph [ref=e57]: Frank Herbert
+        - generic [ref=e60] [cursor=pointer]:
+          - checkbox [ref=e62]
+          - generic [ref=e64]: epub
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Foundation
+            - paragraph [ref=e67]: Isaac Asimov
+        - generic [ref=e68] [cursor=pointer]:
+          - checkbox [ref=e70]
+          - generic [ref=e72]: epub
+          - generic [ref=e73]:
+            - paragraph [ref=e74]: Neuromancer
+            - paragraph [ref=e75]: William Gibson
+    - generic [ref=e79]:
+      - generic [ref=e80]:
+        - heading "Settings" [level=2] [ref=e81]
+        - button "×" [ref=e82] [cursor=pointer]
+      - heading "General" [level=3] [ref=e84]
+      - generic [ref=e85]:
+        - heading "Reader" [level=3] [ref=e86]
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - generic [ref=e89]: Font size
+            - slider "Font size 18" [ref=e90]: "18"
+            - generic [ref=e91]: "18"
+          - generic [ref=e92]:
+            - generic [ref=e93]: Theme
+            - combobox "Theme" [ref=e94]:
+              - option "Light" [selected]
+              - option "Dark"
+              - option "Sepia"
+          - generic [ref=e95]:
+            - generic [ref=e96]: Font family
+            - combobox "Font family" [ref=e97]:
+              - option "Serif" [selected]
+              - option "Sans-serif"
+              - option "Monospace"
+      - generic [ref=e98]:
+        - heading "About" [level=3] [ref=e99]
+        - paragraph [ref=e100]: xCalibre v1.0.0
+      - generic [ref=e101]:
+        - button "Cancel" [ref=e102] [cursor=pointer]
+        - button "Save" [ref=e103] [cursor=pointer]
+```
+
+# Test source
+
+```ts
+  1  | import { test, expect } from "@playwright/test"
+  2  | import { loadApp } from "./helpers"
+  3  | 
+  4  | test.describe("Settings modal", () => {
+  5  |   test("opens via Settings button", async ({ page }) => {
+  6  |     await loadApp(page)
+  7  |     await page.getByRole("button", { name: "Settings" }).click()
+  8  |     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible()
+  9  |   })
+  10 | 
+  11 |   test("opens via Cmd+, keyboard shortcut", async ({ page }) => {
+  12 |     await loadApp(page)
+  13 |     await page.keyboard.press("Meta+,")
+  14 |     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible()
+  15 |   })
+  16 | 
+  17 |   test("General section always shows Server URL field (not gated on token)", async ({ page }) => {
+  18 |     // Load with no token stored
+  19 |     await loadApp(page, { hasToken: false })
+  20 |     await page.getByRole("button", { name: "Settings" }).click()
+  21 |     // After Fix 2, Server URL must always be present
+> 22 |     await expect(page.getByText("Server URL")).toBeVisible()
+     |                                                ^ Error: expect(locator).toBeVisible() failed
+  23 |     await expect(page.locator('input[placeholder*="xcalibre"]')).toBeVisible()
+  24 |   })
+  25 | 
+  26 |   test("Server URL field shows existing value when token is stored", async ({ page }) => {
+  27 |     await loadApp(page, { hasToken: true, xsUrl: "https://my.server.local" })
+  28 |     await page.getByRole("button", { name: "Settings" }).click()
+  29 |     const urlInput = page.locator('input[placeholder*="xcalibre"]')
+  30 |     await expect(urlInput).toHaveValue("https://my.server.local")
+  31 |   })
+  32 | 
+  33 |   test("Reader section has font size slider", async ({ page }) => {
+  34 |     await loadApp(page)
+  35 |     await page.getByRole("button", { name: "Settings" }).click()
+  36 |     await expect(page.getByText("Font size")).toBeVisible()
+  37 |     await expect(page.locator('input[type="range"]')).toBeVisible()
+  38 |   })
+  39 | 
+  40 |   test("Reader section has theme selector", async ({ page }) => {
+  41 |     await loadApp(page)
+  42 |     await page.getByRole("button", { name: "Settings" }).click()
+  43 |     const themeSelect = page.locator("select").first()
+  44 |     await expect(themeSelect).toBeVisible()
+  45 |     await expect(themeSelect.locator('option[value="light"]')).toHaveCount(1)
+  46 |     await expect(themeSelect.locator('option[value="dark"]')).toHaveCount(1)
+  47 |     await expect(themeSelect.locator('option[value="sepia"]')).toHaveCount(1)
+  48 |   })
+  49 | 
+  50 |   test("Reader section has font family selector", async ({ page }) => {
+  51 |     await loadApp(page)
+  52 |     await page.getByRole("button", { name: "Settings" }).click()
+  53 |     const selects = page.locator("select")
+  54 |     await expect(selects).toHaveCount(2)
+  55 |     const fontSelect = selects.nth(1)
+  56 |     await expect(fontSelect.locator('option[value="serif"]')).toHaveCount(1)
+  57 |   })
+  58 | 
+  59 |   test("About section shows version", async ({ page }) => {
+  60 |     await loadApp(page)
+  61 |     await page.getByRole("button", { name: "Settings" }).click()
+  62 |     await expect(page.getByText(/xCalibre v/)).toBeVisible()
+  63 |   })
+  64 | 
+  65 |   test("Cancel button closes modal", async ({ page }) => {
+  66 |     await loadApp(page)
+  67 |     await page.getByRole("button", { name: "Settings" }).click()
+  68 |     await page.getByRole("button", { name: "Cancel" }).click()
+  69 |     await expect(page.getByRole("heading", { name: "Settings" })).not.toBeVisible()
+  70 |   })
+  71 | 
+  72 |   test("× button closes modal", async ({ page }) => {
+  73 |     await loadApp(page)
+  74 |     await page.getByRole("button", { name: "Settings" }).click()
+  75 |     await page.getByRole("button", { name: "×" }).click()
+  76 |     await expect(page.getByRole("heading", { name: "Settings" })).not.toBeVisible()
+  77 |   })
+  78 | 
+  79 |   test("Escape key closes modal", async ({ page }) => {
+  80 |     await loadApp(page)
+  81 |     await page.getByRole("button", { name: "Settings" }).click()
+  82 |     await page.keyboard.press("Escape")
+  83 |     await expect(page.getByRole("heading", { name: "Settings" })).not.toBeVisible()
+  84 |   })
+  85 | 
+  86 |   test("Save button closes modal after click", async ({ page }) => {
+  87 |     await loadApp(page)
+  88 |     await page.getByRole("button", { name: "Settings" }).click()
+  89 |     await page.getByRole("button", { name: "Save" }).click()
+  90 |     await expect(page.getByRole("heading", { name: "Settings" })).not.toBeVisible()
+  91 |   })
+  92 | })
+  93 | 
+```

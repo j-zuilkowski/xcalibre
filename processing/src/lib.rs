@@ -1,0 +1,15 @@
+pub mod db;
+pub mod error;
+pub mod metadata;
+pub mod pipeline;
+pub mod plugins;
+pub mod cover;
+pub mod text;
+pub mod utils;
+pub mod config;
+pub mod enrichment_prompt;
+pub mod commands;
+pub mod import;
+pub mod catalog;
+pub mod integrity;
+pub mod repair;

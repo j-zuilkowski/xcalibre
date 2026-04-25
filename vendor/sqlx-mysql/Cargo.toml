@@ -1,0 +1,17 @@
+[package]
+name = "sqlx-mysql"
+version = "0.8.6"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+any = []
+bigdecimal = []
+chrono = []
+json = []
+migrate = []
+rust_decimal = []
+time = []
+uuid = []

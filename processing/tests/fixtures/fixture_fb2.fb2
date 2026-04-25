@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"><description><title-info><author><first-name>Test</first-name><last-name>Author</last-name></author><book-title>FB2 Fixture</book-title><lang>en</lang></title-info></description><body><section><p>Fixture body text.</p></section></body></FictionBook>

@@ -7,14 +7,18 @@ export function UpdateBanner() {
   const [updateHandle, setUpdateHandle] = useState<Awaited<ReturnType<typeof check>> | null>(null)
 
   useEffect(() => {
-    check()
-      .then((update) => {
-        if (update?.available) {
-          setAvailable(true)
-          setUpdateHandle(update)
-        }
-      })
-      .catch(() => { /* no update server configured */ })
+    try {
+      void check()
+        .then((update) => {
+          if (update?.available) {
+            setAvailable(true)
+            setUpdateHandle(update)
+          }
+        })
+        .catch(() => { /* no update server configured */ })
+    } catch {
+      // Skip update checks outside a fully initialized Tauri runtime.
+    }
   }, [])
 
   if (!available) return null

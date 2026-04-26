@@ -6,14 +6,18 @@ export function useUpdater() {
   const [version, setVersion] = useState("")
 
   useEffect(() => {
-    check()
-      .then((update) => {
-        if (update?.available) {
-          setUpdateAvailable(true)
-          setVersion(update.version)
-        }
-      })
-      .catch(() => {})
+    try {
+      void check()
+        .then((update) => {
+          if (update?.available) {
+            setUpdateAvailable(true)
+            setVersion(update.version)
+          }
+        })
+        .catch(() => {})
+    } catch {
+      // Non-Tauri or uninitialized runtime: silently skip updater checks.
+    }
   }, [])
 
   return { updateAvailable, version }

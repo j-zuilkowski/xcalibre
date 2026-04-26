@@ -62,6 +62,13 @@ function App() {
   useEffect(() => {
     let unlisten: (() => void) | null = null
     let cancelled = false
+    const internals = (window as Window & {
+      __TAURI_INTERNALS__?: { metadata?: { currentWindow?: unknown } }
+    }).__TAURI_INTERNALS__
+
+    if (!internals?.metadata?.currentWindow) {
+      return () => {}
+    }
 
     void getCurrentWindow()
       .onDragDropEvent(async (event) => {

@@ -15,6 +15,7 @@ export function SettingsModal({ open_, onClose }: Props) {
   useEffect(() => {
     if (!open_) return
     invoke<string | null>("get_xs_url").then((u) => setAutolibUrl(u ?? ""))
+    void invoke("has_token").catch(() => {})
   }, [open_])
 
   const save = async () => {

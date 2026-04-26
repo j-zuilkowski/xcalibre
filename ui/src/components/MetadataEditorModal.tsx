@@ -6,6 +6,8 @@ interface Identifier {
   value: string
 }
 
+type IdentifierInput = Identifier[] | Record<string, string> | null
+
 interface BookDetails {
   id: string
   title: string
@@ -17,7 +19,18 @@ interface BookDetails {
   series_index: number | null
   rating: number
   tags: string[]
-  identifiers: Identifier[]
+  identifiers: IdentifierInput
+}
+
+function formatIdentifiers(identifiers: IdentifierInput) {
+  if (!identifiers) return ""
+  if (Array.isArray(identifiers)) {
+    return identifiers.map((identifier) => `${identifier.id_type}=${identifier.value}`).join("\n")
+  }
+
+  return Object.entries(identifiers)
+    .map(([idType, value]) => `${idType}=${value}`)
+    .join("\n")
 }
 
 interface Props {
@@ -63,11 +76,7 @@ export function MetadataEditorModal({ open, bookIds, onClose, onSaved }: Props) 
         setSeriesIndex(details.series_index?.toString() ?? "")
         setRating((details.rating ?? 0).toString())
         setTags((details.tags ?? []).join(", "))
-        setIdentifiers(
-          (details.identifiers ?? [])
-            .map((identifier) => `${identifier.id_type}=${identifier.value}`)
-            .join("\n"),
-        )
+        setIdentifiers(formatIdentifiers(details.identifiers))
       })
       .catch((err) => {
         if (!cancelled) {

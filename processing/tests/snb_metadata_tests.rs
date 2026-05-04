@@ -6,15 +6,55 @@ use xcalibre_processing::{metadata, text};
 /// SNB magic = "SNBP" at offset 0. The file table points to a book.snbf
 /// entry containing XML metadata with title, author, and publisher fields.
 fn write_snb(path: &PathBuf, book_snbf_xml: &[u8]) {
+    let xml_bytes = book_snbf_xml.to_vec();
+    let xml_len = xml_bytes.len();
+
     let mut file = std::fs::File::create(path).unwrap();
-    // SNB header magic
+
+    // Calculate layout:
+    // Offset 0-3: "SNBP" magic
+    // Offset 4-7: section count (LE u32) = 1
+    // Offset 8-23: section header (16 bytes)
+    //   - type (4 bytes LE u32) = 0x02 (file table)
+    //   - offset (4 bytes LE u32) = 24 (start of file table)
+    //   - length (4 bytes LE u32) = file table length
+    //   - flags (4 bytes) = 0
+    // Offset 24+: file table
+    //   - "book.snbf" (9 bytes)
+    //   - file offset (4 bytes LE u32) = offset of XML data
+    //   - file length (4 bytes LE u32) = xml_len
+    // Then: XML data
+
+    // Layout:
+    // 0-3: "SNBP"
+    // 4-7: section_count = 1
+    // 8-23: section header
+    // 24-32: "book.snbf" (9 bytes)
+    // 33-36: file_offset (4 bytes) = 37
+    // 37-40: file_length (4 bytes) = xml_len
+    // 41+: XML data
+
+    let file_offset: u32 = 41;
+    let ft_start: u32 = 24;
+    let ft_len: u32 = (file_offset - ft_start) as u32 + xml_len as u32;
+
+    // Magic
     file.write_all(b"SNBP").unwrap();
-    // Pad with zeros to simulate container structure
-    file.write_all(&[0u8; 64]).unwrap();
-    // Write the book.snbf marker followed by the XML metadata
+    // Section count = 1
+    file.write_all(&(1u32.to_le_bytes())).unwrap();
+    // Section header: type=0x02, offset=24, length=ft_len, flags=0
+    file.write_all(&(0x02u32.to_le_bytes())).unwrap(); // type
+    file.write_all(&ft_start.to_le_bytes()).unwrap(); // offset
+    file.write_all(&ft_len.to_le_bytes()).unwrap();   // length
+    file.write_all(&(0u32.to_le_bytes())).unwrap();   // flags
+
+    // File table: "book.snbf" + file_offset + file_length
     file.write_all(b"book.snbf").unwrap();
-    file.write_all(book_snbf_xml).unwrap();
-    file.write_all(&[0u8; 10]).unwrap();
+    file.write_all(&file_offset.to_le_bytes()).unwrap();
+    file.write_all(&(xml_len as u32).to_le_bytes()).unwrap();
+
+    // XML data
+    file.write_all(&xml_bytes).unwrap();
 }
 
 #[test]

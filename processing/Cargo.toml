@@ -30,6 +30,7 @@ dirs = "5"
 toml = "0.8"
 keyring = "2"
 walkdir = "2"
+chmlib = "1.0.0"
 
 [dev-dependencies]
 tempfile = "3"

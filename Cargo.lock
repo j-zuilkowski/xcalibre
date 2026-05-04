@@ -787,6 +787,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "chmlib"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "080d956db72e2c1f7c6ed0597f4908b95af0083409306d41d33c6425e8bc3576"
+dependencies = [
+ "bitflags 1.3.2",
+ "chmlib-sys",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "chmlib-sys"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91001711e2105acdb33aa1cab805c71ad4853660d4c927a362de258b8df9132"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7855,6 +7875,7 @@ name = "xcalibre-processing"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "chmlib",
  "chrono",
  "clap",
  "criterion",

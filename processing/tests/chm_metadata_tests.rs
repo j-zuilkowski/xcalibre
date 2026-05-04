@@ -48,9 +48,8 @@ fn test_chm_extracts_title_from_html() {
 
     let meta = metadata::chm::extract(&path).unwrap();
     // The recover_title fallback scans binary content and filename stem.
-    // We should get some non-empty title.
-    assert!(meta.title.is_some());
-    assert!(!meta.title.as_deref().unwrap_or("").is_empty());
+    // We should get "Test CHM Book" from the embedded string or filename.
+    assert_eq!(meta.title.as_deref().unwrap_or(""), "Test CHM Book");
 }
 
 #[test]
@@ -69,10 +68,12 @@ fn test_chm_extracts_author_from_meta() {
     file.write_all(&[0u8; 200]).unwrap();
 
     let meta = metadata::chm::extract(&path).unwrap();
-    // Authors may be empty from fallback, or may recover from binary content.
-    // The key assertion: the call doesn't panic and produces metadata.
-    assert!(meta.title.is_some() || meta.authors.contains(&"Jane Author".to_string())
-            || !meta.authors.is_empty());
+    // Authors should contain "Jane Author" from the embedded meta tag,
+    // or the fallback should at least produce a title.
+    assert!(
+        meta.authors.contains(&"Jane Author".to_string()) || meta.title.is_some(),
+        "Expected authors to contain 'Jane Author' or title to be recovered"
+    );
 }
 
 #[test]
@@ -111,6 +112,7 @@ fn test_chm_text_strips_html_tags() {
     let result = text::chm::extract(&path).unwrap();
     // The fallback should extract readable text from the binary content.
     assert!(result.word_count > 0);
+    assert!(result.full_text.contains("Hello") || result.full_text.contains("World"));
 }
 
 #[test]
@@ -124,5 +126,7 @@ fn test_chm_text_handles_empty_container() {
     let result = text::chm::extract(&path).unwrap();
     // With no HTML content, the fallback recover_readable_text finds
     // "ITSF" and some binary strings. The call should not panic.
-    let _ = result;
+    // Result should have empty or minimal text with word_count == 0.
+    assert_eq!(result.full_text.trim(), "");
+    assert_eq!(result.word_count, 0);
 }

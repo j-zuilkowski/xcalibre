@@ -4,6 +4,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
+tempfile = "3"
 flate2 = "1"
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }

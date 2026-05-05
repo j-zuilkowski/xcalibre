@@ -51,3 +51,6 @@ harness = false
 [[test]]
 name = "tcr_text_tests"
 path = "tests/tcr_text_tests.rs"
+[[test]]
+name = "snb_text_tests"
+path = "tests/snb_text_tests.rs"

@@ -54,3 +54,6 @@ path = "tests/tcr_text_tests.rs"
 [[test]]
 name = "snb_text_tests"
 path = "tests/snb_text_tests.rs"
+[[test]]
+name = "lrf_tests"
+path = "tests/lrf_tests.rs"

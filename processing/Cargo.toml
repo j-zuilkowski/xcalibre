@@ -33,6 +33,7 @@ walkdir = "2"
 chmlib = "1.0.0"
 
 [dev-dependencies]
+flate2 = "1"
 tempfile = "3"
 wiremock = "0.6"
 criterion = { version = "0.5", features = ["async_tokio"] }
@@ -57,3 +58,6 @@ path = "tests/snb_text_tests.rs"
 [[test]]
 name = "lrf_tests"
 path = "tests/lrf_tests.rs"
+[[test]]
+name = "djvu_tests"
+path = "tests/djvu_tests.rs"

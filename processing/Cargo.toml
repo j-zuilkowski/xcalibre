@@ -48,3 +48,6 @@ harness = false
 [[bench]]
 name = "pipeline_bench"
 harness = false
+[[test]]
+name = "tcr_text_tests"
+path = "tests/tcr_text_tests.rs"

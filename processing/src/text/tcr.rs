@@ -2,39 +2,44 @@ use crate::error::ProcessingError;
 use crate::text::ExtractedText;
 use std::path::Path;
 
-/// TCR decoding: a 256-entry lookup table followed by RLE-compressed text.
+/// TCR format: 256 variable-length null-terminated C-strings (lookup table),
+/// followed by a body where each byte is an index into that table.
 pub fn extract(path: &Path) -> Result<ExtractedText, ProcessingError> {
     let data = std::fs::read(path).map_err(ProcessingError::IoError)?;
 
-    if data.len() < 4 {
-        return Ok(ExtractedText {
-            full_text: String::new(),
-            word_count: 0,
-        });
+    // Parse the lookup table: read exactly 256 null-terminated strings.
+    let mut table: Vec<&[u8]> = Vec::with_capacity(256);
+    let mut pos = 0usize;
+    while table.len() < 256 {
+        if pos >= data.len() {
+            // Truncated file — return empty rather than panic.
+            return Ok(ExtractedText { full_text: String::new(), word_count: 0 });
+        }
+        // Find the null terminator for this entry.
+        let end = data[pos..].iter().position(|&b| b == 0)
+            .map(|i| pos + i)
+            .unwrap_or(data.len());
+        table.push(&data[pos..end]);
+        pos = end + 1; // skip the null terminator
     }
 
-    // TCR header: first byte = 'M' (0x4d) indicates table size (usually 0 meaning 256 entries)
-    // The table is 256 variable-length C-strings stored consecutively from offset 0.
-    // For simplicity, decode assuming a standard 256-byte table starting at offset 0.
-    // Each byte in the body is an index into the table.
-    // This handles the common case; edge cases return empty.
-
-    let table_end = 256 * 4; // rough upper bound — each entry <= 4 bytes on average
-    if data.len() <= table_end {
-        return Ok(ExtractedText {
-            full_text: String::new(),
-            word_count: 0,
-        });
+    // Everything after the table is the body.
+    let body = &data[pos..];
+    if body.is_empty() {
+        return Ok(ExtractedText { full_text: String::new(), word_count: 0 });
     }
 
-    let body = &data[table_end..];
-    let full_text = String::from_utf8_lossy(body)
+    // Decode: each byte in body is an index into the table.
+    let mut decoded = Vec::with_capacity(body.len() * 4);
+    for &idx in body {
+        decoded.extend_from_slice(table[idx as usize]);
+    }
+
+    let full_text = String::from_utf8_lossy(&decoded)
         .chars()
-        .filter(|c| c.is_ascii_graphic() || *c == ' ' || *c == '\n')
+        .filter(|c| c.is_ascii_graphic() || matches!(c, ' ' | '\n' | '\r' | '\t'))
         .collect::<String>();
     let word_count = full_text.split_whitespace().count();
-    Ok(ExtractedText {
-        full_text,
-        word_count,
-    })
+
+    Ok(ExtractedText { full_text, word_count })
 }

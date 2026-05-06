@@ -75,3 +75,6 @@ path = "tests/txt_pipeline_tests.rs"
 [[test]]
 name = "cbz_cover_tests"
 path = "tests/cbz_cover_tests.rs"
+[[test]]
+name = "pdb_ereader_tests"
+path = "tests/pdb_ereader_tests.rs"

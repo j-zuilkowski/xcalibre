@@ -66,3 +66,6 @@ path = "tests/djvu_tests.rs"
 [[test]]
 name = "azw4_text_tests"
 path = "tests/azw4_text_tests.rs"
+[[test]]
+name = "lit_text_tests"
+path = "tests/lit_text_tests.rs"

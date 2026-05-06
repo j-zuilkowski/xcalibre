@@ -1,15 +1,25 @@
 use crate::error::ProcessingError;
 use crate::text::ExtractedText;
+use crate::utils::recover::recover_readable_text;
 use std::io::Read;
 use std::path::Path;
 
 /// SNB is a ZIP container. Chapter content lives in `snbf/*.xml` entries.
 /// Each XML file uses a simple `<snbf><ch>…<p>text</p>…</ch></snbf>` structure.
 /// Strip XML tags and concatenate all chapter text.
+/// Falls back to recover_readable_text() when the file is not a valid ZIP archive
+/// (e.g. corrupt or non-standard SNB variants with SNBP magic only).
 pub fn extract(path: &Path) -> Result<ExtractedText, ProcessingError> {
     let file = std::fs::File::open(path).map_err(ProcessingError::IoError)?;
-    let mut archive = zip::ZipArchive::new(std::io::BufReader::new(file))
-        .map_err(|e| ProcessingError::TextError(e.to_string()))?;
+    let mut archive = match zip::ZipArchive::new(std::io::BufReader::new(file)) {
+        Ok(a) => a,
+        Err(_) => {
+            // Not a valid ZIP — fall back to heuristic readable-text recovery.
+            let full_text = recover_readable_text(path)?;
+            let word_count = full_text.split_whitespace().count();
+            return Ok(ExtractedText { full_text, word_count });
+        }
+    };
 
     let mut full_text = String::new();
 

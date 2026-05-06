@@ -29,9 +29,10 @@ fn azw4_detects_embedded_pdf() {
 }
 
 #[test]
-fn azw4_no_embedded_pdf_returns_empty() {
+fn azw4_no_embedded_pdf_no_text_returns_empty() {
+    // Binary-only data: no embedded PDF, no recoverable readable text.
     let mut f = NamedTempFile::new().unwrap();
-    f.write_all(b"BOOKMOBI\x00\x00\x00\x00no pdf here").unwrap();
+    f.write_all(&[0xFFu8; 20]).unwrap();
     let result = extract(f.path()).unwrap();
     assert_eq!(result.word_count, 0);
 }

@@ -1,6 +1,16 @@
 use crate::error::ProcessingError;
 use std::path::Path;
 
+/// Extract only printable ASCII runs from the file (no UTF-16 decode, no lossy UTF-8).
+/// Returns an empty string when no printable ASCII is found. Suitable for fallback
+/// text extraction from binary formats where UTF-16 decoding produces misleading output.
+pub fn recover_ascii_text(path: &Path) -> Result<String, ProcessingError> {
+    let bytes = std::fs::read(path).map_err(ProcessingError::IoError)?;
+    Ok(recover_ascii_strings(&bytes)
+        .map(|s| normalize_text(&s))
+        .unwrap_or_default())
+}
+
 pub fn recover_readable_text(path: &Path) -> Result<String, ProcessingError> {
     let bytes = std::fs::read(path).map_err(ProcessingError::IoError)?;
 

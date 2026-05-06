@@ -1,19 +1,23 @@
 use crate::error::ProcessingError;
 use crate::metadata::BookMetadata;
+use crate::utils::recover::recover_title;
 use std::path::Path;
 
 const LRF_MAGIC: &[u8] = b"LRF\x00";
 
 /// LRF / LRX (Sony BroadBand eBook).
 /// Scans the binary for `Title=` and `Author=` key=value pairs embedded
-/// in the file's metadata objects. Falls back to filename-derived title
-/// if neither is found.
+/// in the file's metadata objects. Falls back to heuristic title recovery
+/// via `recover_title()` when magic bytes do not match; rejects recovered
+/// values that contain no alphabetic characters (e.g. pure binary noise).
 pub fn extract(path: &Path) -> Result<BookMetadata, ProcessingError> {
     let data = std::fs::read(path).map_err(ProcessingError::IoError)?;
 
-    // Validate magic bytes.
+    // Validate magic bytes — fall back to heuristic recovery for non-standard files.
     if data.len() < 8 || &data[..4] != LRF_MAGIC {
-        return Ok(BookMetadata { ..BookMetadata::default() });
+        let title = recover_title(path)?
+            .filter(|t| t.chars().any(|c| c.is_alphabetic()));
+        return Ok(BookMetadata { title, ..BookMetadata::default() });
     }
 
     let text = String::from_utf8_lossy(&data);

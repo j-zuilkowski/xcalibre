@@ -53,8 +53,9 @@ fn lrf_text_extracts_content() {
 #[test]
 fn lrf_wrong_magic_returns_defaults() {
     let mut f = NamedTempFile::new().unwrap();
-    f.write_all(b"NOTLRF\x00\x00\x00\x00").unwrap();
-    // Should not panic; returns empty/default
+    // Non-printable bytes: bad magic, no recoverable text content.
+    f.write_all(b"\xFF\xFE\xFF\xFE\xFF\xFE\xFF\xFE\xFF\xFE").unwrap();
+    // Should not panic; returns empty/default (no readable title to recover)
     let meta = meta_extract(f.path()).unwrap();
     assert!(meta.title.is_none() || meta.title.as_deref() == Some(""));
 }

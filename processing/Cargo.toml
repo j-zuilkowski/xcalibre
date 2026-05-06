@@ -69,3 +69,6 @@ path = "tests/azw4_text_tests.rs"
 [[test]]
 name = "lit_text_tests"
 path = "tests/lit_text_tests.rs"
+[[test]]
+name = "txt_pipeline_tests"
+path = "tests/txt_pipeline_tests.rs"

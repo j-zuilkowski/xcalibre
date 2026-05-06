@@ -18,7 +18,7 @@ fn cbz_empty_zip_returns_none() {
     use std::io::Cursor;
     use tempfile::NamedTempFile;
     let buf = Cursor::new(Vec::new());
-    let zip = zip::ZipWriter::new(buf);
+    let mut zip = zip::ZipWriter::new(buf);
     let data = zip.finish().unwrap().into_inner();
     let mut f = NamedTempFile::new().unwrap();
     f.write_all(&data).unwrap();

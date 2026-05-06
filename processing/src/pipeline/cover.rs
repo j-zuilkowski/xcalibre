@@ -14,6 +14,8 @@ pub async fn run_cover(
     let raw = match result.format {
         DetectedFormat::Epub => epub::extract(path)?,
         DetectedFormat::Pdf => crate::cover::pdf::extract(path)?,
+        DetectedFormat::Cbz => crate::cover::cbz::extract(path)?,
+        DetectedFormat::Cbr => crate::cover::cbz::extract(path)?,  // CBR: returns Ok(None) internally
         _ => return Ok(None),
     };
 

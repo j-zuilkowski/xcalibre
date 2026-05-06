@@ -413,3 +413,38 @@ metadata and text extraction tests have real content to parse.
 
 Run all tests: `cargo test --workspace`
 Run with filter: `cargo test --workspace -- <name>`
+
+---
+
+## Versioning Policy
+
+### Sources of truth
+
+All of the following must carry the **same** version string at every commit:
+
+| File | Field |
+|---|---|
+| `src-tauri/Cargo.toml` | `version = "X.Y.Z"` |
+| `src-tauri/tauri.conf.json` | `"version": "X.Y.Z"` |
+
+The Tauri updater reads `tauri.conf.json`; Cargo uses `src-tauri/Cargo.toml`. Both must always agree. Git tags (`vX.Y.Z`) are the release record and must exactly match.
+
+### When to bump
+
+| Change type | Version bump |
+|---|---|
+| Patch — bug fix, UI tweak, no new feature | `1.0.x → 1.0.x+1` |
+| Minor — new feature, new UI panel, new phase complete | `1.x.0 → 1.(x+1).0` |
+| Major — breaking change, drop macOS version support | `x.0.0 → (x+1).0.0` |
+
+### Release procedure
+
+1. Bump `version` in both `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` to the new `X.Y.Z`.
+2. Run `cargo check` inside `src-tauri/` to refresh `Cargo.lock`.
+3. Commit: `git commit -m "Bump version to X.Y.Z"`.
+4. Tag: `git tag vX.Y.Z`.
+5. Push: `git push && git push --tags`.
+
+**Never** tag a release without first updating both version files.
+**Never** let `src-tauri/Cargo.toml` and `tauri.conf.json` disagree on the version.
+**Never** reuse or move a tag that has already been pushed to a remote.

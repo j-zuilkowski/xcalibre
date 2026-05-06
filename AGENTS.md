@@ -86,6 +86,15 @@ cargo test --workspace
 cargo clippy --workspace -- -D warnings
 ```
 
+## Versioning
+
+Full versioning policy (sources of truth, increment rules, release procedure) is in
+`docs/ARCHITECTURE.md` → **Versioning Policy** section. Follow that document exactly.
+
+**Current version: 1.0.0** (no tags yet — first release will be `v1.0.0`)
+
+---
+
 ## Code Style
 - Rust edition 2021
 - No `unwrap()` in production code — use `?` and `ProcessingError`

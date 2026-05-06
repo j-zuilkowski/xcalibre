@@ -27,8 +27,8 @@ pub async fn run_text(
         DetectedFormat::Tcr => crate::text::tcr::extract(path)?,
         DetectedFormat::Djvu => crate::text::djvu::extract(path)?,
         DetectedFormat::Lit => crate::text::lit::extract(path)?,
+        DetectedFormat::Txt => crate::text::txt::extract(path)?,
         DetectedFormat::Cbz | DetectedFormat::Cbr => return Ok(()),
-        DetectedFormat::Txt => return Ok(()),
     };
 
     let now = chrono::Utc::now().to_rfc3339();

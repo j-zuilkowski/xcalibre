@@ -14,6 +14,7 @@ pub mod tcr;
 pub mod azw4;
 pub mod djvu;
 pub mod lit;
+pub mod txt;
 
 #[derive(Debug, Clone)]
 pub struct ExtractedText {

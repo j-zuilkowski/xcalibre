@@ -1,3 +1,4 @@
+use tauri::Manager;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
@@ -1268,4 +1269,13 @@ pub async fn delete_library_cmd(
     id: String,
 ) -> Result<(), String> {
     delete_library(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_app_data_dir(
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    app.path().app_data_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|e| e.to_string())
 }

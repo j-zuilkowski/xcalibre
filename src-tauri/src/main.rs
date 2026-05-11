@@ -106,6 +106,7 @@ fn main() {
             commands::create_library_cmd,
             commands::set_active_library_cmd,
             commands::get_active_library_cmd,
+            commands::get_app_data_dir,
             commands::delete_library_cmd,
         ])
         .run(tauri::generate_context!())

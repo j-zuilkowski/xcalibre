@@ -13,3 +13,4 @@ pub mod import;
 pub mod catalog;
 pub mod integrity;
 pub mod repair;
+pub mod library;

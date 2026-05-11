@@ -102,6 +102,11 @@ fn main() {
             commands::save_config,
             commands::get_xs_url,
             commands::has_token,
+            commands::list_libraries_cmd,
+            commands::create_library_cmd,
+            commands::set_active_library_cmd,
+            commands::get_active_library_cmd,
+            commands::delete_library_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

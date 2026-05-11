@@ -1221,3 +1221,51 @@ pub async fn sync_annotations(
     .await
     .map_err(|e| e.to_string())
 }
+
+use xcalibre_processing::db::library_queries::{
+    create_library, delete_library, get_active_library,
+    list_libraries, set_active_library, NewLibrary, LibraryRow,
+};
+
+#[tauri::command]
+pub async fn list_libraries_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+) -> Result<Vec<LibraryRow>, String> {
+    list_libraries(pool.inner().as_ref()).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    name: String,
+    db_path: String,
+    cover_dir: String,
+    layout: String,
+    xs_url: Option<String>,
+) -> Result<String, String> {
+    let lib = NewLibrary { name, db_path, cover_dir, layout, xs_url };
+    create_library(pool.inner().as_ref(), &lib).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn set_active_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<(), String> {
+    set_active_library(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_active_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+) -> Result<Option<LibraryRow>, String> {
+    get_active_library(pool.inner().as_ref()).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<(), String> {
+    delete_library(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())
+}

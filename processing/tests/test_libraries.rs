@@ -4,7 +4,7 @@
 use sqlx::sqlite::SqlitePoolOptions;
 use xcalibre_processing::db::library_queries::{
     create_library, delete_library, get_active_library, list_libraries,
-    set_active_library, update_library, LibraryRow, NewLibrary,
+    set_active_library, update_library, NewLibrary,
 };
 
 async fn setup() -> sqlx::Pool<sqlx::Sqlite> {

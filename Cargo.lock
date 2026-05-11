@@ -7881,6 +7881,7 @@ dependencies = [
  "criterion",
  "dirs 5.0.1",
  "encoding_rs",
+ "flate2",
  "image",
  "keyring",
  "lopdf",

@@ -113,32 +113,37 @@ Call log:
       - generic [ref=e80]:
         - heading "Settings" [level=2] [ref=e81]
         - button "×" [ref=e82] [cursor=pointer]
-      - heading "General" [level=3] [ref=e84]
-      - generic [ref=e85]:
-        - heading "Reader" [level=3] [ref=e86]
-        - generic [ref=e87]:
-          - generic [ref=e88]:
-            - generic [ref=e89]: Font size
-            - slider "Font size 18" [ref=e90]: "18"
-            - generic [ref=e91]: "18"
-          - generic [ref=e92]:
-            - generic [ref=e93]: Theme
-            - combobox "Theme" [ref=e94]:
+      - generic [ref=e83]:
+        - heading "General" [level=3] [ref=e84]
+        - generic [ref=e85]:
+          - generic [ref=e86]: Server URL
+          - textbox "Server URL" [ref=e87]:
+            - /placeholder: https://api.xcalibre.app
+      - generic [ref=e88]:
+        - heading "Reader" [level=3] [ref=e89]
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: Font size
+            - slider "Font size 18" [ref=e93]: "18"
+            - generic [ref=e94]: "18"
+          - generic [ref=e95]:
+            - generic [ref=e96]: Theme
+            - combobox "Theme" [ref=e97]:
               - option "Light" [selected]
               - option "Dark"
               - option "Sepia"
-          - generic [ref=e95]:
-            - generic [ref=e96]: Font family
-            - combobox "Font family" [ref=e97]:
+          - generic [ref=e98]:
+            - generic [ref=e99]: Font family
+            - combobox "Font family" [ref=e100]:
               - option "Serif" [selected]
               - option "Sans-serif"
               - option "Monospace"
-      - generic [ref=e98]:
-        - heading "About" [level=3] [ref=e99]
-        - paragraph [ref=e100]: xCalibre v1.0.0
       - generic [ref=e101]:
-        - button "Cancel" [ref=e102] [cursor=pointer]
-        - button "Save" [ref=e103] [cursor=pointer]
+        - heading "About" [level=3] [ref=e102]
+        - paragraph [ref=e103]: xCalibre v1.0.0
+      - generic [ref=e104]:
+        - button "Cancel" [ref=e105] [cursor=pointer]
+        - button "Save" [ref=e106] [cursor=pointer]
 ```
 
 # Test source

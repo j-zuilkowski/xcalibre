@@ -1584,3 +1584,65 @@ pub async fn run_virtual_library_cmd(
         "id": r.id, "title": r.title, "authors": r.authors
     })).collect())
 }
+
+use xcalibre_processing::db::notes_queries::{
+    create_note, delete_note, get_note, list_notes, search_notes,
+    update_note, NewNote, NoteRow,
+};
+
+#[tauri::command]
+pub async fn list_notes_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+) -> Result<Vec<NoteRow>, String> {
+    list_notes(pool.inner().as_ref(), &book_id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_note_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<Option<NoteRow>, String> {
+    get_note(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_note_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+    title: String,
+    body_html: String,
+    body_text: String,
+) -> Result<NoteRow, String> {
+    let new = NewNote { book_id, title, body_html, body_text };
+    create_note(pool.inner().as_ref(), &new).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_note_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+    title: String,
+    body_html: String,
+    body_text: String,
+) -> Result<(), String> {
+    update_note(pool.inner().as_ref(), &id, &title, &body_html, &body_text)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_note_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<(), String> {
+    delete_note(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn search_notes_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+    query: String,
+) -> Result<Vec<NoteRow>, String> {
+    search_notes(pool.inner().as_ref(), &book_id, &query).await.map_err(|e| e.to_string())
+}

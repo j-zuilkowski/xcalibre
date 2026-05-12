@@ -129,6 +129,12 @@ fn main() {
             commands::update_virtual_library_cmd,
             commands::delete_virtual_library_cmd,
             commands::run_virtual_library_cmd,
+            commands::list_notes_cmd,
+            commands::get_note_cmd,
+            commands::create_note_cmd,
+            commands::update_note_cmd,
+            commands::delete_note_cmd,
+            commands::search_notes_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

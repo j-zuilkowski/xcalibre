@@ -72,7 +72,7 @@ fn unique_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .subsec_nanos();
-    format!("copy-{nanos:08x}")
+        .unwrap_or_default()
+        .as_nanos();
+    format!("copy-{nanos:016x}")
 }

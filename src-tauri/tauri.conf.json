@@ -24,13 +24,6 @@
       "csp": null
     }
   },
-  "plugins": {
-    "updater": {
-      "endpoints": ["https://releases.xcalibre.app/{{target}}/{{arch}}/{{current_version}}"],
-      "dialog": true,
-      "pubkey": "LOCAL_TEST_PUBLIC_KEY"
-    }
-  },
   "bundle": {
     "active": true,
     "targets": ["dmg", "app", "msi", "nsis"],

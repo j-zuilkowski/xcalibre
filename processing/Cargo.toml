@@ -38,11 +38,6 @@ xcalibre-epub = { path = "../xcalibre-epub" }
 docx-rs = "0.4"
 rusqlite = { version = "0.31", features = ["bundled"] }
 
-# chmlib-sys 1.0.0 has a broken build script on Windows (UNC path bug in cc-rs).
-# CHM support is therefore excluded from the Windows build.
-[target.'cfg(not(target_os = "windows"))'.dependencies]
-chmlib = "1.0.0"
-
 [dev-dependencies]
 flate2 = "1"
 tempfile = "3"

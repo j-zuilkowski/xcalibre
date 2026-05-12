@@ -27,6 +27,7 @@ pub enum DetectedFormat {
     Tcr,
     Djvu,
     Lit,
+    Kfx,
 }
 
 impl DetectedFormat {
@@ -55,6 +56,7 @@ impl DetectedFormat {
             Self::Tcr => ".tcr",
             Self::Djvu => ".djvu",
             Self::Lit => ".lit",
+            Self::Kfx => ".kfx",
         }
     }
 
@@ -84,6 +86,7 @@ impl DetectedFormat {
             Self::Tcr => "TCR",
             Self::Djvu => "DJVU",
             Self::Lit => "LIT",
+            Self::Kfx => "KFX",
         }
     }
 
@@ -99,3 +102,5 @@ impl fmt::Display for DetectedFormat {
 }
 
 pub mod loader;
+
+pub use crate::pipeline::ingest::detect_format;

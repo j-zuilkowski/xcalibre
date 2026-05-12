@@ -322,7 +322,8 @@ pub fn validate_integrity(path: &Path, format: &DetectedFormat) -> Result<(), Pr
         | DetectedFormat::Snb
         | DetectedFormat::Tcr
         | DetectedFormat::Djvu
-        | DetectedFormat::Lit => {}
+        | DetectedFormat::Lit
+        | DetectedFormat::Kfx => {}
     }
     
     Ok(())

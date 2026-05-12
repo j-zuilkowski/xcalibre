@@ -27,6 +27,7 @@ pub async fn run_text(
         DetectedFormat::Tcr => crate::text::tcr::extract(path)?,
         DetectedFormat::Djvu => crate::text::djvu::extract(path)?,
         DetectedFormat::Lit => crate::text::lit::extract(path)?,
+        DetectedFormat::Kfx => return Err(ProcessingError::UnsupportedFormat("KFX".into())),
         DetectedFormat::Txt => crate::text::txt::extract(path)?,
         DetectedFormat::Cbz | DetectedFormat::Cbr => return Ok(()),
     };

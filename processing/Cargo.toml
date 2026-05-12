@@ -39,6 +39,7 @@ xcalibre-plugin-sdk = { path = "../xcalibre-plugin-sdk" }
 flate2 = "1"
 tempfile = "3"
 wiremock = "0.6"
+rusqlite = { version = "0.31", features = ["bundled"] }
 criterion = { version = "0.5", features = ["async_tokio"] }
 
 [[bin]]

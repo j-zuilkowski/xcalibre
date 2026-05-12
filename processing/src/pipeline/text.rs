@@ -49,6 +49,11 @@ pub async fn run_text(
     .await
     .map_err(ProcessingError::DbError)?;
 
+    // Run RAG chunking after text extraction (non-fatal)
+    if let Err(e) = crate::pipeline::rag::run_rag_chunk(pool, &result.job_id, &extracted.full_text).await {
+        tracing::warn!("RAG chunk failed (non-fatal): {}", e);
+    }
+
     info!(job_id = %result.job_id, words = extracted.word_count, "text extracted");
     Ok(())
 }

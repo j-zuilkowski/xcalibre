@@ -8,3 +8,4 @@ pub mod retry;
 pub mod text;
 pub mod sync;
 pub mod enrichment;
+pub mod rag;

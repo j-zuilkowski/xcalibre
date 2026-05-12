@@ -49,14 +49,12 @@ fn split_sentences(text: &str) -> Vec<String> {
     let mut i = 0;
     while i < chars.len() {
         buf.push(chars[i]);
-        if matches!(chars[i], '.' | '!' | '?') {
-            if i + 1 < chars.len() && chars[i + 1] == ' ' {
+        if matches!(chars[i], '.' | '!' | '?') && i + 1 < chars.len() && chars[i + 1] == ' '  {
                 sentences.push(buf.clone());
                 buf.clear();
                 i += 2;
                 continue;
             }
-        }
         i += 1;
     }
     if !buf.trim().is_empty() { sentences.push(buf); }

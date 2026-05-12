@@ -34,6 +34,7 @@ keyring = "2"
 walkdir = "2"
 chmlib = "1.0.0"
 xcalibre-plugin-sdk = { path = "../xcalibre-plugin-sdk" }
+xcalibre-ai = { path = "../xcalibre-ai" }
 rusqlite = { version = "0.31", features = ["bundled"] }
 
 [dev-dependencies]

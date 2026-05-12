@@ -8,16 +8,18 @@ async fn setup() -> sqlx::Pool<sqlx::Sqlite> {
         .connect("sqlite::memory:").await.unwrap();
     sqlx::migrate!("src/db/migrations").run(&pool).await.unwrap();
 
+    let now = chrono::Utc::now().to_rfc3339();
     // Insert test books
     sqlx::query(
-        "INSERT INTO local_books (id, title, authors_json, format, series_name, language)
-         VALUES
-           ('b1', 'Dune',              '[\"Frank Herbert\"]', 'EPUB', 'Dune Chronicles', 'en'),
-           ('b2', 'Dune Messiah',      '[\"Frank Herbert\"]', 'EPUB', 'Dune Chronicles', 'en'),
-           ('b3', 'Foundation',        '[\"Isaac Asimov\"]',  'EPUB', 'Foundation',      'en'),
-           ('b4', 'Pride and Prejudice','[\"Jane Austen\"]',  'EPUB', null,              'en'),
-           ('b5', 'Neuromancer',       '[\"William Gibson\"]','EPUB', null,              'en')"
-    ).execute(&pool).await.unwrap();
+        "INSERT INTO local_books (id, title, authors_json, format, series_name, created_at, updated_at)
+         VALUES ('b1','Dune','[\"Frank Herbert\"]','EPUB','Dune Chronicles',?1,?1),
+                ('b2','Dune Messiah','[\"Frank Herbert\"]','EPUB','Dune Chronicles',?1,?1),
+                ('b3','Foundation','[\"Isaac Asimov\"]','EPUB','Foundation',?1,?1),
+                ('b4','Pride and Prejudice','[\"Jane Austen\"]','EPUB',null,?1,?1),
+                ('b5','Neuromancer','[\"William Gibson\"]','EPUB',null,?1,?1)"
+    )
+    .bind(&now)
+    .execute(&pool).await.unwrap();
 
     // Insert tags
     sqlx::query("INSERT OR IGNORE INTO tags (name) VALUES ('sci-fi'),('classic'),('romance'),('cyberpunk')")
@@ -77,10 +79,13 @@ async fn test_respects_limit() {
 #[tokio::test]
 async fn test_no_results_for_isolated_book() {
     let pool = setup().await;
+    let now = chrono::Utc::now().to_rfc3339();
     sqlx::query(
-        "INSERT INTO local_books (id, title, authors_json, format, language)
-         VALUES ('b99', 'Lonely Book', '[\"Unknown Author\"]', 'EPUB', 'zh')"
-    ).execute(&pool).await.unwrap();
+        "INSERT INTO local_books (id, title, authors_json, format, created_at, updated_at)
+         VALUES ('b99','Lonely Book','[\"Unknown Author\"]','EPUB',?1,?1)"
+    )
+    .bind(&now)
+    .execute(&pool).await.unwrap();
 
     let results = find_similar_books(
         &pool, "b99",

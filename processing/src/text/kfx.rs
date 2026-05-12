@@ -2,6 +2,13 @@ use crate::error::ProcessingError;
 use crate::text::ExtractedText;
 use rusqlite::Connection;
 use std::path::Path;
+use std::sync::OnceLock;
+
+static RE_KFX_TAGS: OnceLock<regex::Regex> = OnceLock::new();
+fn re_kfx_tags() -> &'static regex::Regex {
+    RE_KFX_TAGS
+        .get_or_init(|| regex::Regex::new(r"<[^>]+>").expect("regex"))
+}
 
 /// Extract text from KFX content fragments.
 /// KFX content is stored in fragments with ftype '$608' (text content).
@@ -63,7 +70,6 @@ fn extract_utf8_sequences(data: &[u8]) -> String {
 
 fn clean_kfx_text(text: &str) -> String {
     // Strip KFX markup tags (similar to HTML stripping)
-    let tag_re = regex::Regex::new(r"<[^>]+>").unwrap();
-    let cleaned = tag_re.replace_all(text, " ");
+    let cleaned = re_kfx_tags().replace_all(text, " ");
     cleaned.split_whitespace().collect::<Vec<_>>().join(" ")
 }

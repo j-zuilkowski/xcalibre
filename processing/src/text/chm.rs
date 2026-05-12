@@ -1,6 +1,13 @@
 use crate::error::ProcessingError;
 use crate::text::ExtractedText;
 use std::path::Path;
+use std::sync::OnceLock;
+
+static RE_CHM_TAGS: OnceLock<regex::Regex> = OnceLock::new();
+fn re_chm_tags() -> &'static regex::Regex {
+    RE_CHM_TAGS
+        .get_or_init(|| regex::Regex::new(r"<[^>]*>").expect("regex"))
+}
 
 /// CHM text extraction via `chmlib` ITSF container traversal.
 /// Iterates all objects in the CHM with `.htm` or `.html` extensions,
@@ -106,8 +113,7 @@ fn recover_chm_text_from_raw(path: &Path) -> Result<String, ProcessingError> {
 }
 
 fn strip_html_tags(html: &str) -> String {
-    let re = regex::Regex::new(r"<[^>]*>").unwrap();
-    let stripped = re.replace_all(html, " ");
+    let stripped = re_chm_tags().replace_all(html, " ");
     stripped
         .split_whitespace()
         .collect::<Vec<_>>()

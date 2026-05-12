@@ -1,112 +1,44 @@
-import { beforeEach, afterEach, describe, expect, test, vi } from "vitest"
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
+import { describe, it, expect, vi } from "vitest"
 import { SearchBar } from "./SearchBar"
-import { useLibraryStore, type Book } from "../store/libraryStore"
-import { invokeMock, mockInvoke } from "../test/setup"
-
-const BOOK_A: Book = {
-  id: "b1",
-  title: "Dune",
-  authors: ["Herbert"],
-  format: "epub",
-  cover_path: null,
-  progress_percent: 0,
-  last_opened_at: null,
-  reading_cfi: null,
-}
 
 describe("SearchBar", () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-    useLibraryStore.setState({ books: [], loading: false, error: null })
-    mockInvoke("list_books", [])
-    mockInvoke("search_books", [])
+  it("renders an input", () => {
+    render(<SearchBar onSearch={vi.fn()} />)
+    expect(screen.getByRole("textbox")).toBeInTheDocument()
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
+  it("calls onSearch when Enter is pressed", () => {
+    const onSearch = vi.fn()
+    render(<SearchBar onSearch={onSearch} />)
+    const input = screen.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "title:rust" } })
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(onSearch).toHaveBeenCalledWith("title:rust")
   })
 
-  test("typing fewer than 2 chars does not search", async () => {
-    render(<SearchBar />)
-
-    fireEvent.change(screen.getByPlaceholderText("Search title, author, text…"), {
-      target: { value: "a" },
-    })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200)
-    })
-
-    expect(invokeMock.mock.calls.some(([cmd]) => cmd === "search_books")).toBe(false)
+  it("shows field hint autocomplete when ':' is typed", async () => {
+    render(<SearchBar onSearch={vi.fn()} />)
+    const input = screen.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "title:" } })
+    // Hint list should appear
+    expect(screen.getByTestId("search-hints")).toBeInTheDocument()
   })
 
-  test("typing 2+ chars calls search_books", async () => {
-    mockInvoke("search_books", [BOOK_A])
-    render(<SearchBar />)
-
-    fireEvent.change(screen.getByPlaceholderText("Search title, author, text…"), {
-      target: { value: "du" },
-    })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200)
-    })
-
-    expect(
-      invokeMock.mock.calls.some(
-        ([cmd, payload]) =>
-          cmd === "search_books" &&
-          Boolean(payload) &&
-          (payload as { query?: string }).query === "du",
-      ),
-    ).toBe(true)
+  it("shows no hints for bare text", () => {
+    render(<SearchBar onSearch={vi.fn()} />)
+    const input = screen.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "rust" } })
+    expect(screen.queryByTestId("search-hints")).not.toBeInTheDocument()
   })
 
-  test("clearing to <2 chars calls list_books", async () => {
-    mockInvoke("search_books", [BOOK_A])
-    render(<SearchBar />)
-
-    const input = screen.getByPlaceholderText("Search title, author, text…")
-    fireEvent.change(input, { target: { value: "dune" } })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200)
-    })
-
-    invokeMock.mockClear()
-
-    fireEvent.change(input, { target: { value: "" } })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200)
-    })
-
-    expect(invokeMock.mock.calls.some(([cmd]) => cmd === "list_books")).toBe(true)
-  })
-
-  test("results replace books in store", async () => {
-    mockInvoke("search_books", [BOOK_A])
-    render(<SearchBar />)
-
-    fireEvent.change(screen.getByPlaceholderText("Search title, author, text…"), {
-      target: { value: "du" },
-    })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200)
-    })
-
-    expect(useLibraryStore.getState().books).toEqual([BOOK_A])
-  })
-
-  test("search error is swallowed", async () => {
-    useLibraryStore.setState({ books: [BOOK_A], loading: false, error: null })
-    mockInvoke("search_books", new Error("failed"))
-    render(<SearchBar />)
-
-    fireEvent.change(screen.getByPlaceholderText("Search title, author, text…"), {
-      target: { value: "du" },
-    })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200)
-    })
-
-    expect(useLibraryStore.getState().books).toEqual([BOOK_A])
+  it("clears input when clear button is clicked", () => {
+    const onSearch = vi.fn()
+    render(<SearchBar onSearch={onSearch} />)
+    const input = screen.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "title:rust" } })
+    fireEvent.click(screen.getByTestId("search-clear"))
+    expect(input).toHaveValue("")
+    expect(onSearch).toHaveBeenCalledWith("")
   })
 })

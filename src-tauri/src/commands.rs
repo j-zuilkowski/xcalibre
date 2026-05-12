@@ -1557,20 +1557,15 @@ pub async fn copy_book_to_library_cmd(
         .await.map_err(|e| e.to_string())
 }
 
-use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, kepub, fb2, rtf, htmlz};
+use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, kepub, fb2, rtf, htmlz, lrf, pdb, snb, tcr};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum OutputFormat {
-    Txt,
-    Html,
-    Docx,
-    Pdf,
-    Mobi,
-    Fb2,
-    Rtf,
-    Htmlz,
-    Kepub,
+    Txt, Html, Docx,
+    Pdf, Mobi, Kepub,
+    Fb2, Rtf, Htmlz,
+    Lrf, Pdb, Pml, Rb, Snb, Tcr,
 }
 
 #[tauri::command]
@@ -1608,6 +1603,12 @@ pub async fn convert_book(
         OutputFormat::Rtf   => dir.join(format!("{stem}.rtf")),
         OutputFormat::Htmlz => dir.join(format!("{stem}.htmlz")),
         OutputFormat::Kepub => dir.join(format!("{stem}.kepub.epub")),
+        OutputFormat::Lrf   => dir.join(format!("{stem}.lrf")),
+        OutputFormat::Pdb   => dir.join(format!("{stem}.pdb")),
+        OutputFormat::Pml   => dir.join(format!("{stem}.pml")),
+        OutputFormat::Rb    => dir.join(format!("{stem}.rb")),
+        OutputFormat::Snb   => dir.join(format!("{stem}.snb")),
+        OutputFormat::Tcr   => dir.join(format!("{stem}.tcr")),
     };
 
     match output_format {
@@ -1620,6 +1621,12 @@ pub async fn convert_book(
         OutputFormat::Rtf   => rtf::epub_to_rtf(&epub, &out_path).map_err(|e| e.to_string())?,
         OutputFormat::Htmlz => htmlz::epub_to_htmlz(&epub, &out_path).map_err(|e| e.to_string())?,
         OutputFormat::Kepub => kepub::epub_to_kepub(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Lrf   => lrf::epub_to_lrf(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Pdb   => pdb::epub_to_pdb(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Pml   => pdb::epub_to_pml(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Rb    => pdb::epub_to_rb(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Snb   => snb::epub_to_snb_text(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Tcr   => tcr::epub_to_tcr(&epub, &out_path).map_err(|e| e.to_string())?,
     }
 
     Ok(out_path.to_string_lossy().to_string())

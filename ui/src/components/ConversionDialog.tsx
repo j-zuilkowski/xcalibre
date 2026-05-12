@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
 
-type OutputFormat = "TXT" | "HTML" | "DOCX" | "PDF" | "MOBI" | "FB2" | "RTF" | "HTMLZ"
+type OutputFormat = "TXT" | "HTML" | "DOCX" | "PDF" | "MOBI" | "KEPUB" | "FB2" | "RTF" | "HTMLZ" | "LRF" | "PDB" | "PML" | "RB" | "SNB" | "TCR"
 
 interface Book {
   id: string
@@ -88,6 +88,15 @@ export function ConversionDialog({ book, onClose }: Props) {
           <option value="FB2">FB2</option>
           <option value="RTF">RTF</option>
           <option value="HTMLZ">HTMLZ</option>
+          <option value="KEPUB">KEPUB</option>
+          <optgroup label="Tier 4 (Legacy)">
+            <option value="LRF">LRF</option>
+            <option value="PDB">PDB</option>
+            <option value="PML">PML</option>
+            <option value="RB">RB</option>
+            <option value="SNB">SNB</option>
+            <option value="TCR">TCR</option>
+          </optgroup>
         </select>
 
         {error && (

@@ -1469,7 +1469,7 @@ pub async fn ai_chat(
     backend.chat(&messages, None).await.map_err(|e| e.to_string())
 }
 
-use xcalibre_processing::convert::{docx, html, txt};
+use xcalibre_processing::convert::{docx, html, txt, pdf, mobi};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -1477,6 +1477,8 @@ pub enum OutputFormat {
     Txt,
     Html,
     Docx,
+    Pdf,
+    Mobi,
 }
 
 #[tauri::command]
@@ -1508,12 +1510,16 @@ pub async fn convert_book(
         OutputFormat::Txt  => dir.join(format!("{stem}.txt")),
         OutputFormat::Html => dir.join(format!("{stem}.html")),
         OutputFormat::Docx => dir.join(format!("{stem}.docx")),
+        OutputFormat::Pdf  => dir.join(format!("{stem}.pdf")),
+        OutputFormat::Mobi => dir.join(format!("{stem}.mobi")),
     };
 
     match output_format {
         OutputFormat::Txt  => txt::epub_to_txt(&epub, &out_path).map_err(|e| e.to_string())?,
         OutputFormat::Html => html::epub_to_html(&epub, &out_path).map_err(|e| e.to_string())?,
         OutputFormat::Docx => docx::epub_to_docx(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Pdf  => pdf::epub_to_pdf(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Mobi => mobi::epub_to_mobi(&epub, &out_path).map_err(|e| e.to_string())?,
     }
 
     Ok(out_path.to_string_lossy().to_string())

@@ -149,6 +149,12 @@ fn main() {
             commands::export_library_backup_cmd,
             commands::restore_library_backup_cmd,
             commands::copy_book_to_library_cmd,
+            commands::list_custom_columns_cmd,
+            commands::create_custom_column_cmd,
+            commands::update_custom_column_cmd,
+            commands::delete_custom_column_cmd,
+            commands::get_book_custom_values_cmd,
+            commands::set_book_custom_value_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

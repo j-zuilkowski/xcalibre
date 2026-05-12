@@ -1883,6 +1883,74 @@ pub async fn editor_close(
     Ok(())
 }
 
+use xcalibre_processing::db::custom_columns::{
+    create_custom_column, delete_custom_column, get_all_book_custom_values,
+    list_custom_columns, set_book_custom_value, update_custom_column,
+    CustomColumn, NewCustomColumn,
+};
+
+#[tauri::command]
+pub async fn list_custom_columns_cmd(
+    library_id: Option<String>,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<Vec<CustomColumn>, String> {
+    list_custom_columns(pool.inner().as_ref(), library_id.as_deref())
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_custom_column_cmd(
+    library_id: Option<String>,
+    name: String,
+    label: String,
+    col_type: String,
+    is_multiple: bool,
+    display_in_grid: bool,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<CustomColumn, String> {
+    let new = NewCustomColumn { library_id, name, label, col_type, is_multiple, display_in_grid };
+    create_custom_column(pool.inner().as_ref(), &new).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_custom_column_cmd(
+    id: String,
+    label: String,
+    display_in_grid: bool,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<(), String> {
+    update_custom_column(pool.inner().as_ref(), &id, &label, display_in_grid)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_custom_column_cmd(
+    id: String,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<(), String> {
+    delete_custom_column(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_book_custom_values_cmd(
+    book_id: String,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<std::collections::HashMap<String, Option<String>>, String> {
+    get_all_book_custom_values(pool.inner().as_ref(), &book_id)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn set_book_custom_value_cmd(
+    book_id: String,
+    column_id: String,
+    value: Option<String>,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<(), String> {
+    set_book_custom_value(pool.inner().as_ref(), &book_id, &column_id, value.as_deref())
+        .await.map_err(|e| e.to_string())
+}
+
 use xcalibre_ai::factory::{make_provider, ProviderConfig};
 
 #[tauri::command]

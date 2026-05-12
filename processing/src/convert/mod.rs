@@ -4,3 +4,6 @@ pub mod txt;
 pub mod pdf;
 pub mod mobi;
 pub mod kepub;
+pub mod fb2;
+pub mod rtf;
+pub mod htmlz;

@@ -32,6 +32,10 @@ pub fn epub_to_txt(epub_path: &Path, out_path: &Path) -> Result<(), ProcessingEr
     Ok(())
 }
 
+pub fn strip_html_to_text(html: &str) -> String {
+    strip_html_tags(html)
+}
+
 fn strip_html_tags(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut in_tag = false;

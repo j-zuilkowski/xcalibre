@@ -1510,7 +1510,7 @@ pub async fn save_ai_response_as_note_cmd(
     ).await.map_err(|e| e.to_string())
 }
 
-use xcalibre_processing::convert::{docx, html, txt, pdf, mobi};
+use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, fb2, rtf, htmlz};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -1520,6 +1520,9 @@ pub enum OutputFormat {
     Docx,
     Pdf,
     Mobi,
+    Fb2,
+    Rtf,
+    Htmlz,
 }
 
 #[tauri::command]
@@ -1548,19 +1551,25 @@ pub async fn convert_book(
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
     let out_path = match output_format {
-        OutputFormat::Txt  => dir.join(format!("{stem}.txt")),
-        OutputFormat::Html => dir.join(format!("{stem}.html")),
-        OutputFormat::Docx => dir.join(format!("{stem}.docx")),
-        OutputFormat::Pdf  => dir.join(format!("{stem}.pdf")),
-        OutputFormat::Mobi => dir.join(format!("{stem}.mobi")),
+        OutputFormat::Txt   => dir.join(format!("{stem}.txt")),
+        OutputFormat::Html  => dir.join(format!("{stem}.html")),
+        OutputFormat::Docx  => dir.join(format!("{stem}.docx")),
+        OutputFormat::Pdf   => dir.join(format!("{stem}.pdf")),
+        OutputFormat::Mobi  => dir.join(format!("{stem}.mobi")),
+        OutputFormat::Fb2   => dir.join(format!("{stem}.fb2")),
+        OutputFormat::Rtf   => dir.join(format!("{stem}.rtf")),
+        OutputFormat::Htmlz => dir.join(format!("{stem}.htmlz")),
     };
 
     match output_format {
-        OutputFormat::Txt  => txt::epub_to_txt(&epub, &out_path).map_err(|e| e.to_string())?,
-        OutputFormat::Html => html::epub_to_html(&epub, &out_path).map_err(|e| e.to_string())?,
-        OutputFormat::Docx => docx::epub_to_docx(&epub, &out_path).map_err(|e| e.to_string())?,
-        OutputFormat::Pdf  => pdf::epub_to_pdf(&epub, &out_path).map_err(|e| e.to_string())?,
-        OutputFormat::Mobi => mobi::epub_to_mobi(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Txt   => txt::epub_to_txt(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Html  => html::epub_to_html(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Docx  => docx::epub_to_docx(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Pdf   => pdf::epub_to_pdf(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Mobi  => mobi::epub_to_mobi(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Fb2   => fb2::epub_to_fb2(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Rtf   => rtf::epub_to_rtf(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Htmlz => htmlz::epub_to_htmlz(&epub, &out_path).map_err(|e| e.to_string())?,
     }
 
     Ok(out_path.to_string_lossy().to_string())

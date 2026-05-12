@@ -7,3 +7,4 @@ pub mod fts_queries;
 pub mod collection_queries;
 pub mod annotation_queries;
 pub mod library_queries;
+pub mod plugin_queries;

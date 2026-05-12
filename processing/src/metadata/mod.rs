@@ -22,6 +22,7 @@ pub mod html;
 pub mod rtf;
 pub mod docx;
 pub mod odt;
+#[cfg(not(target_os = "windows"))]
 pub mod chm;
 pub mod lrf;
 pub mod pdb;

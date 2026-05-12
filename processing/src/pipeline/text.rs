@@ -20,7 +20,10 @@ pub async fn run_text(
         DetectedFormat::Rtf => crate::text::rtf::extract(path)?,
         DetectedFormat::Docx => crate::text::docx::extract(path)?,
         DetectedFormat::Odt => crate::text::odt::extract(path)?,
+        #[cfg(not(target_os = "windows"))]
         DetectedFormat::Chm => crate::text::chm::extract(path)?,
+        #[cfg(target_os = "windows")]
+        DetectedFormat::Chm => crate::text::ExtractedText { full_text: String::new(), word_count: 0 },
         DetectedFormat::Lrf | DetectedFormat::Lrx => crate::text::lrf::extract(path)?,
         DetectedFormat::Pdb | DetectedFormat::Pml | DetectedFormat::Rb => crate::text::pdb::extract(path)?,
         DetectedFormat::Snb => crate::text::snb::extract(path)?,

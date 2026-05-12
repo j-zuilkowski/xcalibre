@@ -69,19 +69,11 @@ jobs:
       - name: Build and upload release
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE:                  ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD:         ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY:             ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID:                           ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID:                      ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PASSWORD:                     ${{ secrets.APPLE_PASSWORD }}
-          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName:            ${{ github.event.inputs.tag || github.ref_name }}
           releaseName:        "xcalibre ${{ github.event.inputs.tag || github.ref_name }}"
           releaseBody:        "See [FEATURES.md](https://github.com/j-zuilkowski/xcalibre/blob/main/FEATURES.md) for what's included."
           releaseDraft:       false
-          includeUpdaterJson: true
+          includeUpdaterJson: false
           args:               ${{ matrix.args }}

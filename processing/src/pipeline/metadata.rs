@@ -21,7 +21,10 @@ pub async fn run_metadata(
         DetectedFormat::Rtf => metadata::rtf::extract(path)?,
         DetectedFormat::Docx => metadata::docx::extract(path)?,
         DetectedFormat::Odt => metadata::odt::extract(path)?,
+        #[cfg(not(target_os = "windows"))]
         DetectedFormat::Chm => metadata::chm::extract(path)?,
+        #[cfg(target_os = "windows")]
+        DetectedFormat::Chm => BookMetadata::default(),
         DetectedFormat::Lrf | DetectedFormat::Lrx => metadata::lrf::extract(path)?,
         DetectedFormat::Pdb | DetectedFormat::Pml | DetectedFormat::Rb => metadata::pdb::extract(path)?,
         DetectedFormat::Snb => metadata::snb::extract(path)?,

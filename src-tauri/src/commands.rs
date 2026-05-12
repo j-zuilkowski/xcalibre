@@ -696,7 +696,26 @@ pub async fn export_metadata(
 }
 
 #[tauri::command]
-pub async fn write_file(path: String, contents: String) -> Result<(), String> {
+pub async fn write_file(
+    path: String,
+    contents: String,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let target = std::path::Path::new(&path)
+        .canonicalize()
+        .or_else(|_| {
+            std::path::Path::new(&path)
+                .parent()
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "no parent"))
+                .and_then(|p| p.canonicalize())
+        })
+        .map_err(|e| format!("invalid path: {e}"))?;
+
+    let allowed = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    if !target.starts_with(&allowed) {
+        return Err("write_file: path is outside the app data directory".to_string());
+    }
+
     if let Some(parent) = std::path::Path::new(&path).parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;

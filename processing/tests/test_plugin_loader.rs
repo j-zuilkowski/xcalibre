@@ -1,6 +1,7 @@
 //! Tests for plugin ZIP extraction and ABI version guard.
 //! These tests FAIL until rmp03b implements PluginLoader.
 
+use std::io::Write;
 use std::path::PathBuf;
 use xcalibre_processing::plugins::loader::{install_plugin_zip, PluginLoadError};
 

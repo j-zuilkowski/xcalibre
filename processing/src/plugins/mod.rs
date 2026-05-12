@@ -97,3 +97,5 @@ impl fmt::Display for DetectedFormat {
         write!(f, "{}", self.display_name())
     }
 }
+
+pub mod loader;

@@ -113,6 +113,7 @@ fn main() {
             commands::install_plugin_from_zip,
             commands::set_plugin_enabled_cmd,
             commands::uninstall_plugin_cmd,
+            commands::update_book_metadata,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

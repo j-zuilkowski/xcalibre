@@ -1343,3 +1343,31 @@ pub async fn uninstall_plugin_cmd(
     let _ = std::fs::remove_file(&dylib_path); // best-effort cleanup
     Ok(())
 }
+
+use xcalibre_processing::metadata::BookMetadata;
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn update_book_metadata(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+    title: Option<String>,
+    authors: Vec<String>,
+    publisher: Option<String>,
+    series: Option<String>,
+    series_index: Option<f32>,
+    language: Option<String>,
+    tags: Vec<String>,
+    description: Option<String>,
+    isbn: Option<String>,
+) -> Result<(), String> {
+    let meta = BookMetadata {
+        title, authors, publisher, series, series_index,
+        language, tags, description, isbn, published: None,
+    };
+    xcalibre_processing::db::queries::update_book_metadata_with_opf(
+        pool.inner().as_ref(), &book_id, &meta,
+    )
+    .await
+    .map_err(|e| e.to_string())
+}

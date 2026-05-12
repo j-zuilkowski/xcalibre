@@ -1668,3 +1668,114 @@ pub async fn find_similar_books_cmd(
     find_similar_books(pool.inner().as_ref(), &book_id, &factors, limit.unwrap_or(10))
         .await.map_err(|e| e.to_string())
 }
+
+use std::sync::Mutex;
+use std::collections::HashMap;
+use xcalibre_processing::editor::{EpubEditor, EditorMetadata, ManifestItem};
+
+pub type EditorSessions = Mutex<HashMap<String, EpubEditor>>;
+
+#[derive(Debug, serde::Serialize)]
+pub struct OpenEpubResult {
+    pub spine:    Vec<String>,
+    pub manifest: Vec<ManifestItem>,
+    pub metadata: EditorMetadata,
+}
+
+#[tauri::command]
+pub async fn editor_open_epub(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+    file_path: String,
+) -> Result<OpenEpubResult, String> {
+    let editor = EpubEditor::open(std::path::Path::new(&file_path))
+        .map_err(|e| e.to_string())?;
+    let result = OpenEpubResult {
+        spine: editor.spine_items(),
+        manifest: editor.manifest_items(),
+        metadata: editor.metadata(),
+    };
+    sessions.lock().unwrap().insert(book_id, editor);
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn editor_read_item(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+    href: String,
+) -> Result<String, String> {
+    let sessions = sessions.lock().unwrap();
+    let editor = sessions.get(&book_id)
+        .ok_or_else(|| format!("no editor session for {book_id}"))?;
+    let bytes = editor.read_item(&href).map_err(|e| e.to_string())?;
+    Ok(String::from_utf8_lossy(&bytes).to_string())
+}
+
+#[tauri::command]
+pub async fn editor_write_item(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+    href: String,
+    content: String,
+) -> Result<(), String> {
+    let mut sessions = sessions.lock().unwrap();
+    let editor = sessions.get_mut(&book_id)
+        .ok_or_else(|| format!("no editor session for {book_id}"))?;
+    editor.write_item(&href, content.as_bytes()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn editor_save_epub(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+) -> Result<(), String> {
+    let mut sessions = sessions.lock().unwrap();
+    let editor = sessions.get_mut(&book_id)
+        .ok_or_else(|| format!("no editor session for {book_id}"))?;
+    editor.save().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn editor_update_metadata(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+    title: Option<String>,
+    authors: Option<Vec<String>>,
+) -> Result<(), String> {
+    let mut sessions = sessions.lock().unwrap();
+    let editor = sessions.get_mut(&book_id)
+        .ok_or_else(|| format!("no editor session for {book_id}"))?;
+    if let Some(t) = title { editor.set_title(&t); }
+    if let Some(a) = authors {
+        let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+        editor.set_authors(&refs);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn editor_set_cover(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+    data_b64: String,
+    mime_type: String,
+) -> Result<(), String> {
+    use base64::Engine;
+    let data = base64::engine::general_purpose::STANDARD
+        .decode(&data_b64)
+        .map_err(|e| e.to_string())?;
+    let mut sessions = sessions.lock().unwrap();
+    let editor = sessions.get_mut(&book_id)
+        .ok_or_else(|| format!("no editor session for {book_id}"))?;
+    editor.set_cover(&data, &mime_type).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn editor_close(
+    sessions: tauri::State<'_, EditorSessions>,
+    book_id: String,
+) -> Result<(), String> {
+    sessions.lock().unwrap().remove(&book_id);
+    Ok(())
+}

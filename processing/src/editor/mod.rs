@@ -21,14 +21,14 @@ pub struct EditorMetadata {
 
 pub struct EpubEditor {
     container: Container,
-    path:      PathBuf,
+    _path:     PathBuf,
 }
 
 impl EpubEditor {
     pub fn open(path: &Path) -> Result<Self, ProcessingError> {
         let container = Container::open(path)
             .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-        Ok(Self { container, path: path.to_path_buf() })
+        Ok(Self { container, _path: path.to_path_buf() })
     }
 
     pub fn spine_items(&self) -> Vec<String> {

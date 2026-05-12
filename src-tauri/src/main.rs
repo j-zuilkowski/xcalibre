@@ -43,6 +43,7 @@ fn main() {
                 pool
             });
             app.manage(Arc::new(pool));
+            app.manage(commands::EditorSessions::default());
             Ok(())
         })
         .register_uri_scheme_protocol("epub", |ctx, req| {
@@ -136,6 +137,13 @@ fn main() {
             commands::delete_note_cmd,
             commands::search_notes_cmd,
             commands::find_similar_books_cmd,
+            commands::editor_open_epub,
+            commands::editor_read_item,
+            commands::editor_write_item,
+            commands::editor_save_epub,
+            commands::editor_update_metadata,
+            commands::editor_set_cover,
+            commands::editor_close,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

@@ -123,6 +123,7 @@ fn main() {
             commands::save_ai_config_cmd,
             commands::get_ai_context_chunks,
             commands::ai_chat,
+            commands::convert_book,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

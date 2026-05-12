@@ -33,10 +33,11 @@ pub async fn upsert_ai_config(pool: &SqlitePool, library_id: Option<&str>, cfg: 
          (library_id, provider, model, embed_model, base_url, api_key,
           reasoning_strategy, include_fields, updated_at)
          VALUES (?,?,?,?,?,?,?,?,?)
-         ON CONFLICT(id) DO UPDATE SET
+         ON CONFLICT(library_id) DO UPDATE SET
           provider=excluded.provider, model=excluded.model,
           embed_model=excluded.embed_model, base_url=excluded.base_url,
-          api_key=excluded.api_key, reasoning_strategy=excluded.reasoning_strategy,
+          api_key=COALESCE(excluded.api_key, ai_config.api_key),
+          reasoning_strategy=excluded.reasoning_strategy,
           include_fields=excluded.include_fields, updated_at=excluded.updated_at",
     )
     .bind(library_id).bind(&cfg.provider).bind(&cfg.model).bind(&cfg.embed_model)

@@ -468,7 +468,6 @@ pub async fn get_epub_chapter_html(
     book_id: String,
     href: String,
 ) -> Result<String, String> {
-    eprintln!("get_epub_chapter_html:start book_id={} href={}", book_id, href);
     let file_path: Option<String> = sqlx::query_as::<_, (String,)>("SELECT file_path FROM jobs WHERE id = ?")
         .bind(&book_id)
         .fetch_optional(pool.inner().as_ref())
@@ -479,12 +478,6 @@ pub async fn get_epub_chapter_html(
     let file_path = file_path.ok_or_else(|| "job not found".to_string())?;
     let rendered = crate::epub_protocol::render_html(&file_path, &book_id, &href)
         .map_err(|e| e.to_string())?;
-    eprintln!(
-        "get_epub_chapter_html:done book_id={} href={} bytes={}",
-        book_id,
-        href,
-        rendered.len()
-    );
     Ok(rendered)
 }
 

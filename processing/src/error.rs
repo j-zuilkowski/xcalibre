@@ -25,4 +25,7 @@ pub enum ProcessingError {
 
     #[error("duplicate file already imported: job_id={0}")]
     Duplicate(String),
+
+    #[error("conversion error: {0}")]
+    ConversionError(String),
 }

@@ -17,3 +17,4 @@ pub mod library;
 pub mod opf;
 pub mod search;
 pub mod spellcheck;
+pub mod convert;

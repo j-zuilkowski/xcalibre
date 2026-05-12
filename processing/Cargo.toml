@@ -78,3 +78,9 @@ path = "tests/cbz_cover_tests.rs"
 [[test]]
 name = "pdb_ereader_tests"
 path = "tests/pdb_ereader_tests.rs"
+[[test]]
+name = "test_search_parser"
+path = "tests/test_search_parser.rs"
+[[test]]
+name = "test_search_execution"
+path = "tests/test_search_execution.rs"

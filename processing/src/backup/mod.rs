@@ -127,7 +127,7 @@ pub async fn restore_library_backup(
         let mut entry = archive.by_name("library.db")
             .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
         let mut json = String::new();
-        std::io::Read::read_to_string(&mut entry, &mut json).unwrap();
+        std::io::Read::read_to_string(&mut entry, &mut json)?;
         serde_json::from_str(&json)
             .map_err(|e| ProcessingError::ConversionError(e.to_string()))?
     };

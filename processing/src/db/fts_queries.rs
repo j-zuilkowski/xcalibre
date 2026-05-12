@@ -37,15 +37,22 @@ pub async fn upsert_fts(
 
 /// Search the FTS index. Returns matching book_ids.
 pub async fn search(pool: &SqlitePool, query: &str) -> Result<Vec<String>, ProcessingError> {
-    let rows = sqlx::query_as::<_, (String,)>(
+    let result = sqlx::query_as::<_, (String,)>(
         "SELECT DISTINCT book_id FROM books_fts WHERE books_fts MATCH ? ORDER BY rank",
     )
     .bind(query)
     .fetch_all(pool)
-    .await
-    .map_err(ProcessingError::DbError)?;
+    .await;
 
-    Ok(rows.into_iter().map(|(id,)| id).collect())
+    match result {
+        Ok(rows) => Ok(rows.into_iter().map(|(id,)| id).collect()),
+        Err(sqlx::Error::Database(e))
+            if e.message().contains("fts5:") || e.message().contains("malformed MATCH") =>
+        {
+            Ok(vec![])
+        }
+        Err(e) => Err(ProcessingError::DbError(e)),
+    }
 }
 
 pub async fn refresh_book_index(

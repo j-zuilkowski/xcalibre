@@ -300,7 +300,7 @@ pub async fn delete_bookmark(pool: &SqlitePool, bookmark_id: &str) -> Result<(),
 }
 
 pub async fn search_books(pool: &SqlitePool, query: &str) -> Result<Vec<Job>, ProcessingError> {
-    let rows: Vec<JobRow> = sqlx::query_as(
+    let result = sqlx::query_as::<_, JobRow>(
             "SELECT j.id, j.file_path, j.file_sha256, j.format, j.status,
                     j.retry_count, j.next_retry_at, j.xs_book_id,
                     j.push_step, j.error_message, j.created_at, j.updated_at
@@ -312,26 +312,33 @@ pub async fn search_books(pool: &SqlitePool, query: &str) -> Result<Vec<Job>, Pr
         )
         .bind(query)
         .fetch_all(pool)
-        .await
-        .map_err(ProcessingError::DbError)?;
+        .await;
 
-    Ok(rows
-        .into_iter()
-        .map(|(id, file_path, file_sha256, format, status, retry_count, next_retry_at, xs_book_id, push_step, error_message, created_at, updated_at)| Job {
-            id,
-            file_path,
-            file_sha256,
-            format,
-            status,
-            retry_count,
-            next_retry_at,
-            xs_book_id,
-            push_step,
-            error_message,
-            created_at,
-            updated_at,
-        })
-        .collect())
+    match result {
+        Ok(rows) => Ok(rows
+            .into_iter()
+            .map(|(id, file_path, file_sha256, format, status, retry_count, next_retry_at, xs_book_id, push_step, error_message, created_at, updated_at)| Job {
+                id,
+                file_path,
+                file_sha256,
+                format,
+                status,
+                retry_count,
+                next_retry_at,
+                xs_book_id,
+                push_step,
+                error_message,
+                created_at,
+                updated_at,
+            })
+            .collect()),
+        Err(sqlx::Error::Database(e))
+            if e.message().contains("fts5:") || e.message().contains("malformed MATCH") =>
+        {
+            Ok(vec![])
+        }
+        Err(e) => Err(ProcessingError::DbError(e)),
+    }
 }
 
 #[derive(Debug, Clone)]

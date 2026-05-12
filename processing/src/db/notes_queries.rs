@@ -92,7 +92,7 @@ pub async fn search_notes(
     book_id: &str,
     query: &str,
 ) -> Result<Vec<NoteRow>, sqlx::Error> {
-    sqlx::query_as::<_, NoteRow>(
+    let result = sqlx::query_as::<_, NoteRow>(
         "SELECT n.* FROM notes n
          JOIN notes_fts f ON n.rowid = f.rowid
          WHERE n.book_id=? AND notes_fts MATCH ?
@@ -101,5 +101,15 @@ pub async fn search_notes(
     .bind(book_id)
     .bind(query)
     .fetch_all(pool)
-    .await
+    .await;
+
+    match result {
+        Ok(rows) => Ok(rows),
+        Err(sqlx::Error::Database(e))
+            if e.message().contains("fts5:") || e.message().contains("malformed MATCH") =>
+        {
+            Ok(vec![])
+        }
+        Err(e) => Err(e),
+    }
 }

@@ -1883,6 +1883,69 @@ pub async fn editor_close(
     Ok(())
 }
 
+use xcalibre_processing::db::reading_sessions::{
+    start_reading_session, end_reading_session, list_reading_sessions,
+    total_reading_time_seconds,
+};
+use xcalibre_processing::db::page_count::get_book_page_count;
+
+#[tauri::command]
+pub async fn start_reading_session_cmd(
+    book_id:        String,
+    progress_start: f64,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<String, String> {
+    start_reading_session(pool.inner().as_ref(), &book_id, progress_start)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn end_reading_session_cmd(
+    session_id:     String,
+    duration_s:     i64,
+    progress_start: f64,
+    progress_end:   f64,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<(), String> {
+    end_reading_session(pool.inner().as_ref(), &session_id, duration_s, progress_start, progress_end)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_reading_stats_cmd(
+    book_id: String,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<serde_json::Value, String> {
+    let sessions = list_reading_sessions(pool.inner().as_ref(), &book_id)
+        .await.map_err(|e| e.to_string())?;
+    let total_s = total_reading_time_seconds(pool.inner().as_ref(), &book_id)
+        .await.map_err(|e| e.to_string())?;
+    let pc = get_book_page_count(pool.inner().as_ref(), &book_id)
+        .await.map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({
+        "session_count": sessions.len(),
+        "total_seconds":  total_s,
+        "total_minutes":  total_s / 60,
+        "page_count":     pc,
+    }))
+}
+
+#[tauri::command]
+pub async fn update_reading_progress_cmd(
+    book_id:          String,
+    progress_percent: f64,
+    pool: tauri::State<'_, Arc<SqlitePool>>,
+) -> Result<(), String> {
+    sqlx::query(
+        "UPDATE local_books SET progress_percent=?, last_opened_at=datetime('now') WHERE id=?"
+    )
+    .bind(progress_percent)
+    .bind(&book_id)
+    .execute(pool.inner().as_ref())
+    .await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 use xcalibre_processing::db::custom_columns::{
     create_custom_column, delete_custom_column, get_all_book_custom_values,
     list_custom_columns, set_book_custom_value, update_custom_column,

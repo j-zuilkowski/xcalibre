@@ -94,7 +94,7 @@ pub async fn import_local_book(
         .fetch_optional(pool)
         .await
         .ok()
-        .and_then(|r| r.map(|(w,)| w).flatten());
+        .and_then(|r| r.and_then(|(w,)| w));
 
         if let Some(words) = word_count {
             let pages = ((words as f64) / 250.0).ceil() as u32;

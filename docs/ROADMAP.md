@@ -489,6 +489,21 @@ Build sequentially within the Tier 6 window; each format is self-contained.
 
 ---
 
+### Phase 25 — Release Infrastructure & CI/CD ✅
+**Tier:** — · **Effort:** completed 2026-05-12 · **No feature prerequisites**
+
+**Delivered:**
+- `CLAUDE.md` and `AGENTS.md` — session instructions for Claude Code and Codex
+- `.github/workflows/ci.yml` — Rust + frontend checks on every push/PR
+- `.github/workflows/release.yml` — cross-platform installer builds (macOS arm64/x86_64, Windows MSI+NSIS, Linux deb) on `v*` tag push
+- Version alignment: all 8 crate/package version sources set to `1.0.0`
+- chmlib removed; CHM text and metadata extractors rewritten to pure Rust
+- `v1.0.0` release published to GitHub
+
+See `docs/phases/rmp25_release_ci.md` for full task breakdown.
+
+---
+
 ## Total Effort Estimate
 
 | Tier | Phases | Estimated Weeks |

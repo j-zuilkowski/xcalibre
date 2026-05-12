@@ -77,6 +77,14 @@ pub fn detect_format(path: &Path) -> Result<DetectedFormat, ProcessingError> {
     if header.starts_with(b"ITOLITLS") {
         return Ok(DetectedFormat::Lit);
     }
+    // KFX detection: SQLite database with fragments table
+    if header.starts_with(b"SQLite format 3\0") {
+        if is_kfx_database(path) {
+            return Ok(DetectedFormat::Kfx);
+        }
+        return Err(ProcessingError::UnsupportedFormat("SQLite (non-KFX)".into()));
+    }
+
 
     if header.starts_with(b"SNBP") {
         return Ok(DetectedFormat::Snb);
@@ -400,4 +408,15 @@ pub async fn run_ingest(
         sha256,
         file_size,
     })
+}
+
+
+fn is_kfx_database(path: &Path) -> bool {
+    use rusqlite::Connection;
+    let Ok(conn) = Connection::open(path) else { return false };
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='fragments'",
+        [], |r| r.get(0),
+    ).unwrap_or(0);
+    count > 0
 }

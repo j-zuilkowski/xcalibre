@@ -4,6 +4,7 @@ members = [
     "api",
     "src-tauri",
     "xcalibre-plugin-sdk",
+    "xcalibre-epub",
 ]
 resolver = "2"
 

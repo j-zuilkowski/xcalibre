@@ -18,3 +18,4 @@ pub mod opf;
 pub mod search;
 pub mod spellcheck;
 pub mod convert;
+pub mod editor;

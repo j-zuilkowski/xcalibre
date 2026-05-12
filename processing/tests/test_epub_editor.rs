@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use xcalibre_processing::editor::{EpubEditor, EditorError};
+use xcalibre_processing::editor::EpubEditor;
 
 fn fixture_epub() -> PathBuf { PathBuf::from("tests/fixtures/fixture_epub.epub") }
 

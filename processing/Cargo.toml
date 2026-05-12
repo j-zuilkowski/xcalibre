@@ -87,3 +87,6 @@ path = "tests/test_search_execution.rs"
 [[test]]
 name = "test_plugin_sdk"
 path = "tests/test_plugin_sdk.rs"
+[[test]]
+name = "test_plugin_loader"
+path = "tests/test_plugin_loader.rs"

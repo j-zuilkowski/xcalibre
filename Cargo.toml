@@ -3,6 +3,7 @@ members = [
     "processing",
     "api",
     "src-tauri",
+    "xcalibre-plugin-sdk",
 ]
 resolver = "2"
 

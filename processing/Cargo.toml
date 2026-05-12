@@ -33,6 +33,7 @@ toml = "0.8"
 keyring = "2"
 walkdir = "2"
 chmlib = "1.0.0"
+xcalibre-plugin-sdk = { path = "../xcalibre-plugin-sdk" }
 
 [dev-dependencies]
 flate2 = "1"

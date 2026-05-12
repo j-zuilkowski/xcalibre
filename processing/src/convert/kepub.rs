@@ -1,3 +1,4 @@
+use std::path::Path;
 use crate::error::ProcessingError;
 use xcalibre_epub::Container;
 

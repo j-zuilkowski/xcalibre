@@ -126,6 +126,8 @@ fn main() {
             commands::ai_chat,
             commands::save_ai_response_as_note_cmd,
             commands::convert_book,
+            commands::get_book_stats,
+            commands::pretty_print_epub_cmd,
             commands::list_virtual_libraries_cmd,
             commands::create_virtual_library_cmd,
             commands::update_virtual_library_cmd,

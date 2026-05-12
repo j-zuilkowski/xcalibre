@@ -1557,7 +1557,7 @@ pub async fn copy_book_to_library_cmd(
         .await.map_err(|e| e.to_string())
 }
 
-use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, fb2, rtf, htmlz};
+use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, kepub, fb2, rtf, htmlz};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -1570,6 +1570,7 @@ pub enum OutputFormat {
     Fb2,
     Rtf,
     Htmlz,
+    Kepub,
 }
 
 #[tauri::command]
@@ -1606,6 +1607,7 @@ pub async fn convert_book(
         OutputFormat::Fb2   => dir.join(format!("{stem}.fb2")),
         OutputFormat::Rtf   => dir.join(format!("{stem}.rtf")),
         OutputFormat::Htmlz => dir.join(format!("{stem}.htmlz")),
+        OutputFormat::Kepub => dir.join(format!("{stem}.kepub.epub")),
     };
 
     match output_format {
@@ -1617,9 +1619,29 @@ pub async fn convert_book(
         OutputFormat::Fb2   => fb2::epub_to_fb2(&epub, &out_path).map_err(|e| e.to_string())?,
         OutputFormat::Rtf   => rtf::epub_to_rtf(&epub, &out_path).map_err(|e| e.to_string())?,
         OutputFormat::Htmlz => htmlz::epub_to_htmlz(&epub, &out_path).map_err(|e| e.to_string())?,
+        OutputFormat::Kepub => kepub::epub_to_kepub(&epub, &out_path).map_err(|e| e.to_string())?,
     }
 
     Ok(out_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn get_book_stats(
+    file_path: String,
+) -> Result<xcalibre_processing::stats::BookStats, String> {
+    xcalibre_processing::stats::compute_book_stats(std::path::Path::new(&file_path))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn pretty_print_epub_cmd(
+    epub_path: String,
+    out_path:  String,
+) -> Result<(), String> {
+    xcalibre_processing::polish::pretty_print_epub(
+        std::path::Path::new(&epub_path),
+        std::path::Path::new(&out_path),
+    ).map_err(|e| e.to_string())
 }
 
 use xcalibre_processing::db::vlib_queries::{

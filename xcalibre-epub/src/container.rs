@@ -110,11 +110,8 @@ impl Container {
             }
             for (name, data) in &self.entries {
                 if name == "mimetype" { continue; }
-                let opts = if name.ends_with(".xhtml") || name.ends_with(".html")
-                    || name.ends_with(".css") || name.ends_with(".opf")
-                    || name.ends_with(".xml") || name.ends_with(".ncx")
-                { deflated } else { deflated };
-                z.start_file(name, opts).map_err(|e| EpubError::Zip(e.to_string()))?;
+                let _opts = deflated;
+                z.start_file(name, _opts).map_err(|e| EpubError::Zip(e.to_string()))?;
                 use std::io::Write;
                 z.write_all(data).map_err(EpubError::Io)?;
             }
@@ -132,9 +129,12 @@ fn resolve_href(opf_path: &str, href: &str) -> String {
     if opf_dir.is_empty() { href.to_string() } else { format!("{}/{}", opf_dir, href) }
 }
 
+type ManifestEntry = (String, String, String);
+type ParseResult = (Vec<ManifestEntry>, Vec<String>);
+
 fn parse_opf_for_manifest(
     entries: &HashMap<String, Vec<u8>>, opf_path: &str,
-) -> Result<(Vec<(String, String, String)>, Vec<String>), EpubError> {
+) -> Result<ParseResult, EpubError> {
     let opf_data = entries.get(opf_path)
         .ok_or_else(|| EpubError::MissingElement(format!("OPF file: {}", opf_path)))?;
     let xml = std::str::from_utf8(opf_data).map_err(|e| EpubError::Xml(e.to_string()))?;

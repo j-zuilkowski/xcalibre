@@ -124,6 +124,11 @@ fn main() {
             commands::get_ai_context_chunks,
             commands::ai_chat,
             commands::convert_book,
+            commands::list_virtual_libraries_cmd,
+            commands::create_virtual_library_cmd,
+            commands::update_virtual_library_cmd,
+            commands::delete_virtual_library_cmd,
+            commands::run_virtual_library_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

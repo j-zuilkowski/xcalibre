@@ -1518,3 +1518,69 @@ pub async fn convert_book(
 
     Ok(out_path.to_string_lossy().to_string())
 }
+
+use xcalibre_processing::db::vlib_queries::{
+    create_virtual_library, delete_virtual_library, get_virtual_library,
+    list_virtual_libraries, update_virtual_library, NewVirtualLibrary, VirtualLibrary,
+};
+use xcalibre_processing::db::vlib_execute::execute_virtual_library;
+
+#[tauri::command]
+pub async fn list_virtual_libraries_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    library_id: Option<String>,
+) -> Result<Vec<VirtualLibrary>, String> {
+    list_virtual_libraries(pool.inner().as_ref(), library_id.as_deref())
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_virtual_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    library_id: Option<String>,
+    name: String,
+    search_expr: String,
+    sort_field: String,
+    sort_asc: bool,
+) -> Result<VirtualLibrary, String> {
+    let new = NewVirtualLibrary { library_id, name, search_expr, sort_field, sort_asc };
+    create_virtual_library(pool.inner().as_ref(), &new)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_virtual_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+    name: String,
+    search_expr: String,
+    sort_field: String,
+    sort_asc: bool,
+) -> Result<(), String> {
+    update_virtual_library(pool.inner().as_ref(), &id, &name, &search_expr, &sort_field, sort_asc)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_virtual_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<(), String> {
+    delete_virtual_library(pool.inner().as_ref(), &id)
+        .await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn run_virtual_library_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let vlib = get_virtual_library(pool.inner().as_ref(), &id)
+        .await.map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("virtual library {id} not found"))?;
+    let rows = execute_virtual_library(pool.inner().as_ref(), &vlib)
+        .await.map_err(|e| e.to_string())?;
+    Ok(rows.into_iter().map(|r| serde_json::json!({
+        "id": r.id, "title": r.title, "authors": r.authors
+    })).collect())
+}

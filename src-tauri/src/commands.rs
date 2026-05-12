@@ -1827,7 +1827,7 @@ pub async fn editor_open_epub(
         manifest: editor.manifest_items(),
         metadata: editor.metadata(),
     };
-    sessions.lock().unwrap().insert(book_id, editor);
+    sessions.lock().map_err(|_| "session lock poisoned".to_string())?.insert(book_id, editor);
     Ok(result)
 }
 
@@ -1837,7 +1837,7 @@ pub async fn editor_read_item(
     book_id: String,
     href: String,
 ) -> Result<String, String> {
-    let sessions = sessions.lock().unwrap();
+    let sessions = sessions.lock().map_err(|_| "session lock poisoned".to_string())?;
     let editor = sessions.get(&book_id)
         .ok_or_else(|| format!("no editor session for {book_id}"))?;
     let bytes = editor.read_item(&href).map_err(|e| e.to_string())?;
@@ -1851,7 +1851,7 @@ pub async fn editor_write_item(
     href: String,
     content: String,
 ) -> Result<(), String> {
-    let mut sessions = sessions.lock().unwrap();
+    let mut sessions = sessions.lock().map_err(|_| "session lock poisoned".to_string())?;
     let editor = sessions.get_mut(&book_id)
         .ok_or_else(|| format!("no editor session for {book_id}"))?;
     editor.write_item(&href, content.as_bytes()).map_err(|e| e.to_string())
@@ -1862,7 +1862,7 @@ pub async fn editor_save_epub(
     sessions: tauri::State<'_, EditorSessions>,
     book_id: String,
 ) -> Result<(), String> {
-    let mut sessions = sessions.lock().unwrap();
+    let mut sessions = sessions.lock().map_err(|_| "session lock poisoned".to_string())?;
     let editor = sessions.get_mut(&book_id)
         .ok_or_else(|| format!("no editor session for {book_id}"))?;
     editor.save().map_err(|e| e.to_string())
@@ -1875,7 +1875,7 @@ pub async fn editor_update_metadata(
     title: Option<String>,
     authors: Option<Vec<String>>,
 ) -> Result<(), String> {
-    let mut sessions = sessions.lock().unwrap();
+    let mut sessions = sessions.lock().map_err(|_| "session lock poisoned".to_string())?;
     let editor = sessions.get_mut(&book_id)
         .ok_or_else(|| format!("no editor session for {book_id}"))?;
     if let Some(t) = title { editor.set_title(&t); }
@@ -1897,7 +1897,7 @@ pub async fn editor_set_cover(
     let data = base64::engine::general_purpose::STANDARD
         .decode(&data_b64)
         .map_err(|e| e.to_string())?;
-    let mut sessions = sessions.lock().unwrap();
+    let mut sessions = sessions.lock().map_err(|_| "session lock poisoned".to_string())?;
     let editor = sessions.get_mut(&book_id)
         .ok_or_else(|| format!("no editor session for {book_id}"))?;
     editor.set_cover(&data, &mime_type).map_err(|e| e.to_string())
@@ -1908,7 +1908,7 @@ pub async fn editor_close(
     sessions: tauri::State<'_, EditorSessions>,
     book_id: String,
 ) -> Result<(), String> {
-    sessions.lock().unwrap().remove(&book_id);
+    sessions.lock().map_err(|_| "session lock poisoned".to_string())?.remove(&book_id);
     Ok(())
 }
 

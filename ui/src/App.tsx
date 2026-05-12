@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { BookDiscussDialog } from "./components/BookDiscussDialog"
 import { invoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { LibraryView } from "./components/LibraryView"
@@ -24,7 +25,20 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [metadataEditorOpen, setMetadataEditorOpen] = useState(false)
   const [metadataBookIds, setMetadataBookIds] = useState<string[]>([])
+  const [showDiscuss, setShowDiscuss] = useState(false)
   const [dropStatus, setDropStatus] = useState<string | null>(null)
+  
+  // Ctrl+Alt+A shortcut for AI book discussion
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && e.key === "a") {
+        if (selectedBook) setShowDiscuss(true)
+      }
+    }
+    window.addEventListener("keydown", handleKey)
+    return () => window.removeEventListener("keydown", handleKey)
+  }, [selectedBook])
+  
   const [importLog, setImportLog] = useState<
     Array<{ id: string; text: string; tone: "success" | "error" }>
   >([])

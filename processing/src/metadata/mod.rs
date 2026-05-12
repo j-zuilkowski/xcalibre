@@ -33,3 +33,4 @@ pub mod lit;
 pub mod cbz;
 pub mod isbn;
 pub mod enrichment;
+pub mod kfx;

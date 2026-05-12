@@ -30,7 +30,7 @@ pub async fn execute_virtual_library(
     let mut q = sqlx::query_as::<_, BookRow>(&sql);
     for id in &ids { q = q.bind(id); }
     let rows = q.fetch_all(pool).await
-        .map_err(|e| crate::error::ProcessingError::DbError(e))?;
+        .map_err(crate::error::ProcessingError::DbError)?;
     Ok(rows)
 }
 

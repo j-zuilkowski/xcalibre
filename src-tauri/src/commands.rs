@@ -986,15 +986,51 @@ pub async fn bulk_delete_books(
     pool: tauri::State<'_, Arc<SqlitePool>>,
     book_ids: Vec<String>,
 ) -> Result<u64, String> {
+    let pool = pool.inner().as_ref();
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     let mut count = 0u64;
+
     for id in &book_ids {
         let cover: Option<(Option<String>,)> = sqlx::query_as(
             "SELECT cover_path FROM local_books WHERE id = ?",
         )
         .bind(id)
-        .fetch_optional(pool.inner().as_ref())
+        .fetch_optional(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
+
+        for sql in &[
+            "DELETE FROM books_fts WHERE book_id = ?",
+            "DELETE FROM book_chunks WHERE book_id = ?",
+            "DELETE FROM job_text WHERE job_id = ?",
+            "DELETE FROM book_formats WHERE book_id = ?",
+            "DELETE FROM book_tags WHERE book_id = ?",
+            "DELETE FROM identifiers WHERE book_id = ?",
+            "DELETE FROM collection_books WHERE book_id = ?",
+            "DELETE FROM annotations WHERE book_id = ?",
+            "DELETE FROM notes WHERE book_id = ?",
+            "DELETE FROM reading_sessions WHERE book_id = ?",
+            "DELETE FROM push_queue WHERE job_id = ?",
+        ] {
+            sqlx::query(sql)
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+
+        let result = sqlx::query("DELETE FROM local_books WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+        count += result.rows_affected();
+
+        sqlx::query("DELETE FROM jobs WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
 
         if let Some((Some(path),)) = cover {
             if !path.is_empty() {
@@ -1003,48 +1039,9 @@ pub async fn bulk_delete_books(
                 }
             }
         }
-
-        let _ = sqlx::query("DELETE FROM books_fts WHERE book_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-        let _ = sqlx::query("DELETE FROM job_text WHERE job_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-        let _ = sqlx::query("DELETE FROM book_formats WHERE book_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-        let _ = sqlx::query("DELETE FROM book_tags WHERE book_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-        let _ = sqlx::query("DELETE FROM identifiers WHERE book_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-        let _ = sqlx::query("DELETE FROM collection_books WHERE book_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-
-        let result = sqlx::query("DELETE FROM local_books WHERE id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
-        count += result.rows_affected();
-
-        let _ = sqlx::query("DELETE FROM push_queue WHERE job_id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
-        let _ = sqlx::query("DELETE FROM jobs WHERE id = ?")
-            .bind(id)
-            .execute(pool.inner().as_ref())
-            .await;
     }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
     Ok(count)
 }
 

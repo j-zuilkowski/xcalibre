@@ -1,7 +1,7 @@
 -- Rich notes attached to a book.
 CREATE TABLE IF NOT EXISTS notes (
     id          TEXT NOT NULL PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-    book_id     TEXT NOT NULL REFERENCES local_books(id) ON DELETE CASCADE,
+    book_id     TEXT NOT NULL,
     title       TEXT NOT NULL DEFAULT 'Untitled Note',
     body_html   TEXT NOT NULL DEFAULT '',
     body_text   TEXT NOT NULL DEFAULT '',  -- plain-text version for FTS

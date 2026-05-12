@@ -4,6 +4,7 @@ import type { Book } from "../store/libraryStore"
 import { LibrarySkeleton } from "./Skeleton"
 import { SearchBar } from "./SearchBar"
 import { invoke } from "@tauri-apps/api/core"
+import { ReadingProgressBar } from "./ReadingProgressBar"
 
 interface Props {
   onSelectBook?: (book: Book) => void
@@ -80,11 +81,8 @@ export function LibraryView({ onSelectBook, selectedIds, onToggleSelected }: Pro
               <p className="text-sm font-medium truncate dark:text-white">{book.title}</p>
               <p className="text-xs text-gray-500 truncate">{book.authors.join(", ")}</p>
               {book.progress_percent > 0 && (
-                <div className="mt-1 h-1 bg-gray-200 rounded-full">
-                  <div
-                    className="h-1 bg-blue-500 rounded-full"
-                    style={{ width: `${book.progress_percent}%` }}
-                  />
+                <div className="mt-1">
+                  <ReadingProgressBar percent={book.progress_percent} height={4} />
                 </div>
               )}
             </div>

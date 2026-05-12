@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
 import { Book } from "../store/libraryStore"
+import { ReadingProgressBar } from "./ReadingProgressBar"
 
 interface CustomColumn {
   id: string; name: string; label: string; col_type: string
@@ -15,6 +16,7 @@ interface Props {
 export function BookDetail({ book, onClose, onDiscuss }: Props) {
   const [customCols,   setCustomCols]   = useState<CustomColumn[]>([])
   const [customValues, setCustomValues] = useState<Record<string, string | null>>({})
+  const [readingStats, setReadingStats] = useState<{ total_minutes: number; session_count: number; page_count: number | null } | null>(null)
 
   useEffect(() => {
     invoke<CustomColumn[]>("list_custom_columns_cmd", { libraryId: null })
@@ -23,6 +25,9 @@ export function BookDetail({ book, onClose, onDiscuss }: Props) {
     invoke<Record<string, string | null>>("get_book_custom_values_cmd", { bookId: book.id })
       .then(setCustomValues)
       .catch(() => {})
+    invoke<{ total_minutes: number; session_count: number; page_count: number | null }>(
+      "get_reading_stats_cmd", { bookId: book.id }
+    ).then(setReadingStats).catch(() => {})
   }, [book.id])
 
   function handleCustomChange(colId: string, value: string) {
@@ -47,8 +52,23 @@ export function BookDetail({ book, onClose, onDiscuss }: Props) {
         {book.progress_percent > 0 && (
           <>
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Progress</p>
-            <p className="text-sm dark:text-gray-300">{Math.round(book.progress_percent)}%</p>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <ReadingProgressBar percent={book.progress_percent} showLabel />
+            </div>
           </>
+        )}
+        {readingStats && (readingStats.session_count > 0 || readingStats.page_count != null) && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Reading History</p>
+            {readingStats.page_count != null && (
+              <p className="text-sm dark:text-gray-300">{readingStats.page_count} pages</p>
+            )}
+            {readingStats.session_count > 0 && (
+              <p className="text-sm dark:text-gray-300">
+                {readingStats.session_count} session{readingStats.session_count !== 1 ? "s" : ""} · {Math.round(readingStats.total_minutes)} min total
+              </p>
+            )}
+          </div>
         )}
         {customCols.length > 0 && (
           <div style={{ marginTop: "1rem" }}>

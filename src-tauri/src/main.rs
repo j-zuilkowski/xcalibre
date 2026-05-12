@@ -135,6 +135,7 @@ fn main() {
             commands::update_note_cmd,
             commands::delete_note_cmd,
             commands::search_notes_cmd,
+            commands::find_similar_books_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

@@ -1646,3 +1646,25 @@ pub async fn search_notes_cmd(
 ) -> Result<Vec<NoteRow>, String> {
     search_notes(pool.inner().as_ref(), &book_id, &query).await.map_err(|e| e.to_string())
 }
+
+use xcalibre_processing::db::similar_queries::{find_similar_books, SimilarBook, SimilarityFactors};
+
+#[tauri::command]
+pub async fn find_similar_books_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+    same_author: Option<bool>,
+    same_series: Option<bool>,
+    shared_tags: Option<bool>,
+    same_language: Option<bool>,
+    limit: Option<i64>,
+) -> Result<Vec<SimilarBook>, String> {
+    let factors = SimilarityFactors {
+        same_author: same_author.unwrap_or(true),
+        same_series: same_series.unwrap_or(true),
+        shared_tags: shared_tags.unwrap_or(true),
+        same_language: same_language.unwrap_or(true),
+    };
+    find_similar_books(pool.inner().as_ref(), &book_id, &factors, limit.unwrap_or(10))
+        .await.map_err(|e| e.to_string())
+}

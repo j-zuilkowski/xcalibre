@@ -13,7 +13,7 @@ pub fn epub_to_snb_text(epub_path: &Path, out_path: &Path) -> Result<(), Process
         container.read_item(&opf_path).ok()
             .and_then(|bytes| String::from_utf8(bytes).ok())
             .and_then(|xml| xcalibre_epub::opf::EpubOPF::parse(&xml).ok())
-            .and_then(|opf| opf.title.map(|s| s))
+            .and_then(|opf| opf.title)
             .unwrap_or_else(|| "Untitled".to_string())
     };
 

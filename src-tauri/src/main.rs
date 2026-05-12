@@ -144,6 +144,7 @@ fn main() {
             commands::editor_update_metadata,
             commands::editor_set_cover,
             commands::editor_close,
+            commands::ai_list_models,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

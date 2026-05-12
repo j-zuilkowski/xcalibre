@@ -1779,3 +1779,26 @@ pub async fn editor_close(
     sessions.lock().unwrap().remove(&book_id);
     Ok(())
 }
+
+use xcalibre_ai::factory::{make_provider, ProviderConfig};
+
+#[tauri::command]
+pub async fn ai_list_models(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+) -> Result<Vec<String>, String> {
+    let cfg = xcalibre_processing::db::ai_queries::get_ai_config(pool.inner().as_ref(), None)
+        .await.map_err(|e| e.to_string())?;
+    let cfg = match cfg {
+        Some(c) => c,
+        None => return Ok(vec![]),
+    };
+    let pcfg = ProviderConfig {
+        provider: cfg.provider,
+        model: cfg.model,
+        embed_model: cfg.embed_model,
+        base_url: cfg.base_url,
+        api_key: cfg.api_key,
+    };
+    let provider = make_provider(&pcfg).map_err(|e| e.to_string())?;
+    provider.list_models().await.map_err(|e| e.to_string())
+}

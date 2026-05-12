@@ -630,21 +630,20 @@ pub async fn get_collection_books_cmd(
     pool: tauri::State<'_, Arc<SqlitePool>>,
     collection_id: String,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let jobs = xcalibre_processing::db::queries::get_collection_books(
-        pool.inner().as_ref(),
-        &collection_id,
+    let rows = sqlx::query_as::<_, BookRow>(
+        "SELECT lb.id, lb.title, lb.authors_json, lb.format, lb.cover_path, lb.local_path,
+                lb.progress_percent, lb.last_opened_at, lb.reading_cfi
+         FROM local_books lb
+         JOIN collection_books cb ON cb.book_id = lb.id
+         WHERE cb.collection_id = ?
+         ORDER BY cb.added_at ASC",
     )
+    .bind(&collection_id)
+    .fetch_all(pool.inner().as_ref())
     .await
     .map_err(|e| e.to_string())?;
 
-    let mut books = Vec::with_capacity(jobs.len());
-    for job in jobs {
-        if let Some(book) = fetch_book_by_id(pool.inner().as_ref(), &job.id).await? {
-            books.push(book);
-        }
-    }
-
-    Ok(books)
+    Ok(rows.into_iter().map(book_row_to_value).collect())
 }
 
 #[tauri::command]

@@ -15,3 +15,4 @@ pub mod notes_queries;
 pub mod similar_queries;
 pub mod ai_note;
 pub mod book_copy;
+pub mod custom_columns;

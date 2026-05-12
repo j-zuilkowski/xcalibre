@@ -1400,7 +1400,16 @@ pub fn set_spell_check_language(_language: String) {
 use xcalibre_processing::db::ai_queries::{get_ai_config, upsert_ai_config, get_book_chunks, AiConfig};
 use xcalibre_ai::ollama::OllamaBackend;
 use xcalibre_ai::provider::AiProvider;
-use xcalibre_ai::{ChatMessage, MessageRole};
+use xcalibre_ai::{ChatMessage, MessageRole, extract_citations, apply_reasoning_budget, ReasoningBudget, Citation};
+
+#[derive(Debug, serde::Serialize)]
+pub struct AiChatResult {
+    pub content:   String,
+    pub model:     String,
+    pub done:      bool,
+    pub reasoning: Option<String>,
+    pub citations: Vec<Citation>,
+}
 
 #[tauri::command]
 pub async fn get_ai_config_cmd(
@@ -1446,15 +1455,16 @@ pub async fn ai_chat(
     book_id: String,
     query: String,
     history: Vec<serde_json::Value>,
-) -> Result<xcalibre_ai::ChatResponse, String> {
+    reasoning_budget: Option<String>,
+) -> Result<AiChatResult, String> {
     let cfg = get_ai_config(pool.inner().as_ref(), None)
         .await.map_err(|e| e.to_string())?
         .ok_or("No AI provider configured")?;
     let backend = OllamaBackend::new(&cfg.base_url, &cfg.model, &cfg.embed_model);
     let chunks = get_book_chunks(pool.inner().as_ref(), &book_id)
         .await.map_err(|e| e.to_string())?;
-    let context: String = chunks.iter().take(5)
-        .map(|(_, t, _)| t.as_str()).collect::<Vec<_>>().join("\n\n");
+    let chunk_texts: Vec<String> = chunks.iter().take(5).map(|(_, t, _)| t.clone()).collect();
+    let context = chunk_texts.join("\n\n");
     let system = format!("You are a helpful assistant discussing a book. \
         Relevant passages:\n\n{}\n\nAnswer the user's question based on these passages \
         and your general knowledge.", context);
@@ -1466,7 +1476,38 @@ pub async fn ai_chat(
         }
     }
     messages.push(ChatMessage { role: MessageRole::User, content: query });
-    backend.chat(&messages, None).await.map_err(|e| e.to_string())
+
+    let budget = reasoning_budget
+        .as_deref()
+        .and_then(ReasoningBudget::from_name)
+        .unwrap_or(ReasoningBudget::None);
+    let messages = apply_reasoning_budget(messages, budget);
+
+    let response = backend.chat(&messages, None).await.map_err(|e| e.to_string())?;
+
+    let refs: Vec<&str> = chunk_texts.iter().map(|s| s.as_str()).collect();
+    let cited = extract_citations(&response.content, &refs);
+
+    Ok(AiChatResult {
+        content:   response.content,
+        model:     response.model,
+        done:      response.done,
+        reasoning: response.reasoning,
+        citations: cited.citations,
+    })
+}
+
+#[tauri::command]
+pub async fn save_ai_response_as_note_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id:   String,
+    title:     String,
+    body_html: String,
+    body_text: String,
+) -> Result<(), String> {
+    xcalibre_processing::db::ai_note::save_ai_response_as_note(
+        pool.inner().as_ref(), &book_id, &title, &body_html, &body_text,
+    ).await.map_err(|e| e.to_string())
 }
 
 use xcalibre_processing::convert::{docx, html, txt, pdf, mobi};

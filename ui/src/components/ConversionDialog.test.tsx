@@ -6,6 +6,7 @@ import { mockInvoke } from "../test/setup"
 const mockBook = {
   id: "b1", title: "Test Book", authors: ["A"], format: "EPUB",
   cover_path: null, progress_percent: 0, last_opened_at: null,
+  file_path: "/tmp/test.epub",
 }
 
 beforeEach(() => {

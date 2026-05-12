@@ -12,7 +12,8 @@ async fn setup() -> sqlx::Pool<sqlx::Sqlite> {
 async fn test_save_ai_response_as_note() {
     let pool = setup().await;
     sqlx::query(
-        "INSERT INTO local_books (id, title, authors, format) VALUES ('b1', 'Dune', '[]', 'EPUB')"
+        "INSERT INTO local_books (id, title, authors_json, format, created_at, updated_at) \
+         VALUES ('b1', 'Dune', '[]', 'EPUB', '2024-01-01', '2024-01-01')"
     ).execute(&pool).await.unwrap();
 
     xcalibre_processing::db::ai_note::save_ai_response_as_note(

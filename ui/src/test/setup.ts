@@ -51,6 +51,9 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
 
 vi.stubGlobal("localStorage", localStorageMock)
 
+// jsdom doesn't implement scrollIntoView
+window.HTMLElement.prototype.scrollIntoView = vi.fn()
+
 afterEach(() => {
   localStorageMock.clear()
   invokeMock.mockClear()

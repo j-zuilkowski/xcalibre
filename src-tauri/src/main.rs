@@ -124,6 +124,7 @@ fn main() {
             commands::save_ai_config_cmd,
             commands::get_ai_context_chunks,
             commands::ai_chat,
+            commands::save_ai_response_as_note_cmd,
             commands::convert_book,
             commands::list_virtual_libraries_cmd,
             commands::create_virtual_library_cmd,

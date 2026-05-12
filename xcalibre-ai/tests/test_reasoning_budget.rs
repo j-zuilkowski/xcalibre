@@ -27,10 +27,10 @@ fn test_budget_high_adds_detailed_reasoning_prompt() {
 
 #[test]
 fn test_budget_from_str() {
-    assert_eq!(ReasoningBudget::from_str("none"),    Some(ReasoningBudget::None));
-    assert_eq!(ReasoningBudget::from_str("auto"),    Some(ReasoningBudget::Auto));
-    assert_eq!(ReasoningBudget::from_str("low"),     Some(ReasoningBudget::Low));
-    assert_eq!(ReasoningBudget::from_str("medium"),  Some(ReasoningBudget::Medium));
-    assert_eq!(ReasoningBudget::from_str("high"),    Some(ReasoningBudget::High));
-    assert_eq!(ReasoningBudget::from_str("unknown"), None);
+    assert_eq!(ReasoningBudget::from_name("none"),    Some(ReasoningBudget::None));
+    assert_eq!(ReasoningBudget::from_name("auto"),    Some(ReasoningBudget::Auto));
+    assert_eq!(ReasoningBudget::from_name("low"),     Some(ReasoningBudget::Low));
+    assert_eq!(ReasoningBudget::from_name("medium"),  Some(ReasoningBudget::Medium));
+    assert_eq!(ReasoningBudget::from_name("high"),    Some(ReasoningBudget::High));
+    assert_eq!(ReasoningBudget::from_name("unknown"), None);
 }

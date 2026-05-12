@@ -9,8 +9,8 @@ const mockVlibs = [
 ]
 
 beforeEach(() => {
-  mockInvoke("list_virtual_libraries", mockVlibs)
-  mockInvoke("list_libraries", [{ id: "lib1", name: "My Library", is_active: true }])
+  mockInvoke("list_virtual_libraries_cmd", mockVlibs)
+  mockInvoke("list_libraries_cmd", [{ id: "lib1", name: "My Library", is_active: true }])
 })
 
 describe("Sidebar virtual libraries", () => {

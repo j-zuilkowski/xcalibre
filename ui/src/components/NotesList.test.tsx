@@ -9,9 +9,9 @@ const mockNotes = [
 ]
 
 beforeEach(() => {
-  mockInvoke("list_notes", mockNotes)
-  mockInvoke("delete_note", undefined)
-  mockInvoke("search_notes", [mockNotes[0]])
+  mockInvoke("list_notes_cmd", mockNotes)
+  mockInvoke("delete_note_cmd", undefined)
+  mockInvoke("search_notes_cmd", [mockNotes[0]])
 })
 
 describe("NotesList", () => {

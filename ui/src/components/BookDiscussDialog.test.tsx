@@ -17,7 +17,7 @@ beforeEach(() => {
 describe("BookDiscussDialog", () => {
   it("shows book title in header", async () => {
     render(<BookDiscussDialog book={mockBook} onClose={vi.fn()} />)
-    expect(screen.getByText("Dune")).toBeInTheDocument()
+    expect(screen.getByText(/Dune/)).toBeInTheDocument()
   })
 
   it("shows all 5 default quick actions", async () => {

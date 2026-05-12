@@ -13,3 +13,4 @@ pub mod vlib_queries;
 pub mod vlib_execute;
 pub mod notes_queries;
 pub mod similar_queries;
+pub mod ai_note;

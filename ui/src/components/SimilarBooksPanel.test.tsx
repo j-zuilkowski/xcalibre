@@ -14,7 +14,7 @@ const mockSimilar = [
 ]
 
 beforeEach(() => {
-  mockInvoke("find_similar_books", mockSimilar)
+  mockInvoke("find_similar_books_cmd", mockSimilar)
 })
 
 describe("SimilarBooksPanel", () => {
@@ -32,7 +32,7 @@ describe("SimilarBooksPanel", () => {
   })
 
   it("shows empty state when no similar books", async () => {
-    mockInvoke("find_similar_books", [])
+    mockInvoke("find_similar_books_cmd", [])
     render(<SimilarBooksPanel book={mockBook} onOpenBook={vi.fn()} />)
     await waitFor(() =>
       expect(screen.getByTestId("similar-books-empty")).toBeInTheDocument()

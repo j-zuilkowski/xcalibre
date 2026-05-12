@@ -1,5 +1,5 @@
 //! Tests for managed folder layout logic (S6-C, RMP-01).
-//! These tests FAIL until rmp01b implements managed_path().
+//! Tests for managed folder layout (RMP-01).
 
 use std::path::PathBuf;
 use xcalibre_processing::library::managed_path;

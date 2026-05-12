@@ -1,5 +1,5 @@
 //! Tests for the field-scoped search parser (RMP-02).
-//! These tests FAIL until rmp02b implements the parser.
+//! Tests for the field-scoped search parser (RMP-02).
 
 use xcalibre_processing::search::{parse_query, QueryNode};
 

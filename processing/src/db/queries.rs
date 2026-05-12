@@ -456,8 +456,6 @@ pub async fn update_book_metadata_with_opf(
 ) -> Result<(), ProcessingError> {
     let authors_json = serde_json::to_string(&meta.authors)
         .map_err(|e| ProcessingError::MetadataError(e.to_string()))?;
-    let _tags_json = serde_json::to_string(let tags_json = serde_json::to_string(&meta.tags)meta.tags)
-        .map_err(|e| ProcessingError::MetadataError(e.to_string()))?;
     let now = chrono::Utc::now().to_rfc3339();
 
     sqlx::query(

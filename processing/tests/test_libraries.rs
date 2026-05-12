@@ -1,5 +1,5 @@
 //! Tests for multi-library support (RMP-01).
-//! These tests FAIL until rmp01b implements the library queries.
+//! Tests for library CRUD queries (RMP-01).
 
 use sqlx::sqlite::SqlitePoolOptions;
 use xcalibre_processing::db::library_queries::{

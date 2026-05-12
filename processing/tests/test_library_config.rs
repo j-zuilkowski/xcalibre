@@ -1,5 +1,5 @@
 //! Tests for LibraryConfig persistence (RMP-01).
-//! These tests FAIL until rmp01b implements LibraryConfig.
+//! Tests for LibraryConfig persistence (RMP-01).
 
 use std::path::PathBuf;
 use xcalibre_processing::config::{LibraryConfig, LibraryEntry};

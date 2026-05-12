@@ -1,5 +1,5 @@
 //! Tests for plugin ZIP extraction and ABI version guard.
-//! These tests FAIL until rmp03b implements PluginLoader.
+//! Tests for the plugin loader (RMP-03).
 
 use std::io::Write;
 use std::path::PathBuf;

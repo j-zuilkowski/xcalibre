@@ -1,5 +1,5 @@
 //! Tests for xcalibre-plugin-sdk types and PLUGIN_API_VERSION guard.
-//! These tests FAIL until rmp03b creates the xcalibre-plugin-sdk crate.
+//! Tests for the plugin SDK crate (RMP-03).
 
 use xcalibre_plugin_sdk::{PLUGIN_API_VERSION, PluginType, PluginMetadata};
 

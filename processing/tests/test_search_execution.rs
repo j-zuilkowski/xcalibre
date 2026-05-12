@@ -1,5 +1,5 @@
 //! Tests for executing parsed queries against a real SQLite library DB.
-//! These tests FAIL until rmp02b implements execute_query().
+//! Tests for search query execution (RMP-02).
 
 use sqlx::sqlite::SqlitePoolOptions;
 use xcalibre_processing::search::execute_query;

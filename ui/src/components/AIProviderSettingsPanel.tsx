@@ -26,7 +26,7 @@ export function AIProviderSettingsPanel({ onClose }: Props) {
     invoke<any>("get_ai_config_cmd").then(cfg => {
       if (cfg) {
         setProvider(cfg.provider); setBaseUrl(cfg.base_url)
-        setApiKey(cfg.api_key ?? ""); setModel(cfg.model)
+        setApiKey(cfg.has_api_key ? "••••••••" : ""); setModel(cfg.model)
         setEmbedModel(cfg.embed_model)
       }
     }).catch(console.error).finally(() => setLoading(false))

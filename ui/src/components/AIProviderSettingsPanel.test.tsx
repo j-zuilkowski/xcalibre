@@ -5,7 +5,7 @@ import { mockInvoke } from "../test/setup"
 
 const mockConfig = {
   provider: "ollama", model: "llama3", embed_model: "nomic-embed-text",
-  base_url: "http://localhost:11434", api_key: null, reasoning_strategy: "auto",
+  base_url: "http://localhost:11434", has_api_key: false, reasoning_strategy: "auto",
   include_fields: '["title","authors"]',
 }
 

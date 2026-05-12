@@ -1517,11 +1517,32 @@ pub struct AiChatResult {
     pub citations: Vec<Citation>,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct AiConfigPublic {
+    pub provider:           String,
+    pub model:              String,
+    pub embed_model:        String,
+    pub base_url:           String,
+    pub has_api_key:        bool,
+    pub reasoning_strategy: String,
+    pub include_fields:     String,
+}
+
 #[tauri::command]
 pub async fn get_ai_config_cmd(
     pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
-) -> Result<Option<AiConfig>, String> {
-    get_ai_config(pool.inner().as_ref(), None).await.map_err(|e| e.to_string())
+) -> Result<Option<AiConfigPublic>, String> {
+    let cfg = get_ai_config(pool.inner().as_ref(), None)
+        .await.map_err(|e| e.to_string())?;
+    Ok(cfg.map(|c| AiConfigPublic {
+        provider:           c.provider,
+        model:              c.model,
+        embed_model:        c.embed_model,
+        base_url:           c.base_url,
+        has_api_key:        c.api_key.is_some(),
+        reasoning_strategy: c.reasoning_strategy,
+        include_fields:     c.include_fields,
+    }))
 }
 
 #[tauri::command]

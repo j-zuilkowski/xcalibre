@@ -7871,6 +7871,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "xcalibre-plugin-sdk"
+version = "1.0.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "xcalibre-processing"
 version = "1.0.0"
 dependencies = [
@@ -7904,6 +7911,7 @@ dependencies = [
  "walkdir",
  "wiremock",
  "xcalibre-api",
+ "xcalibre-plugin-sdk",
  "zip 0.6.6",
 ]
 

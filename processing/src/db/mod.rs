@@ -16,3 +16,5 @@ pub mod similar_queries;
 pub mod ai_note;
 pub mod book_copy;
 pub mod custom_columns;
+pub mod page_count;
+pub mod reading_sessions;

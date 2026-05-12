@@ -115,6 +115,14 @@ xcalibre (Tauri 2 shell)
 
 ---
 
+## Acknowledgements
+
+xcalibre is a spiritual re-engineering of [Calibre](https://calibre-ebook.com), the legendary open-source ebook manager created by Kovid Goyal. Calibre has been the gold standard for ebook library management for nearly two decades, and this project would not exist without the foundation it laid — its format support breadth, metadata model, virtual library concept, and conversion pipeline all directly inspired xcalibre's design.
+
+xcalibre is not a fork or a replacement. It is a ground-up rewrite in Rust and React, built to explore what a native, local-first ebook manager looks like with a modern toolchain. If you need the most complete, battle-tested ebook tool available, use Calibre.
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.

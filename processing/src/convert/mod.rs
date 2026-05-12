@@ -7,3 +7,7 @@ pub mod kepub;
 pub mod fb2;
 pub mod rtf;
 pub mod htmlz;
+pub mod tcr;
+pub mod snb;
+pub mod pdb;
+pub mod lrf;

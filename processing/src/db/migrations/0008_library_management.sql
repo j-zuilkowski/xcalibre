@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS book_tags (
     tag_id  INTEGER NOT NULL REFERENCES tags(id)        ON DELETE CASCADE,
     PRIMARY KEY (book_id, tag_id)
 );
+CREATE INDEX IF NOT EXISTS idx_book_tags_tag_id ON book_tags(tag_id);
 
 CREATE TABLE IF NOT EXISTS identifiers (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,

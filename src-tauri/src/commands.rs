@@ -1371,3 +1371,28 @@ pub async fn update_book_metadata(
     .await
     .map_err(|e| e.to_string())
 }
+
+use crate::spellcheck;
+use xcalibre_processing::spellcheck::{SpellCheckResult, SuggestionsResult};
+
+#[tauri::command]
+pub fn check_word(word: String) -> SpellCheckResult {
+    let is_correct = spellcheck::check_word(&word);
+    SpellCheckResult { word, is_correct }
+}
+
+#[tauri::command]
+pub fn get_suggestions(word: String) -> SuggestionsResult {
+    let suggestions = spellcheck::suggestions(&word);
+    SuggestionsResult { word, suggestions }
+}
+
+#[tauri::command]
+pub fn add_to_dictionary(word: String) {
+    spellcheck::add_to_dictionary(&word);
+}
+
+#[tauri::command]
+pub fn set_spell_check_language(_language: String) {
+    // TODO: call [NSSpellChecker setLanguage:] on macOS
+}

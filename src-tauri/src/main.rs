@@ -115,6 +115,10 @@ fn main() {
             commands::set_plugin_enabled_cmd,
             commands::uninstall_plugin_cmd,
             commands::update_book_metadata,
+            commands::check_word,
+            commands::get_suggestions,
+            commands::add_to_dictionary,
+            commands::set_spell_check_language,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

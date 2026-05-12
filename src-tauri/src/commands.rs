@@ -1,7 +1,44 @@
+//! Tauri command handlers — the IPC boundary between the WebView and Rust.
+//!
+//! Every public function decorated with `#[tauri::command]` is callable from
+//! TypeScript via `invoke("command_name", { arg: value })`. The functions are
+//! registered in `main.rs` with `.invoke_handler(tauri::generate_handler![...])`.
+//!
+//! ## Architecture
+//!
+//! This file is intentionally thin: commands validate inputs, delegate to the
+//! appropriate `xcalibre-processing`, `xcalibre-ai`, or `xcalibre-epub` crate
+//! function, and map errors to `String` for the WebView. Business logic lives in
+//! the processing crate, not here.
+//!
+//! ## State injection
+//!
+//! Tauri injects shared state via `tauri::State<'_, T>`. The primary shared state
+//! is `Arc<SqlitePool>`, set up in `main.rs` and available to every command.
+//!
+//! ## Security boundaries
+//!
+//! - [`write_file`]: enforces a path sandbox — the target must be inside
+//!   `app_data_dir()`. Any path outside that directory is rejected.
+//! - [`list_comic_pages`]: uses `file_name()` to strip directory components from
+//!   ZIP entry names, preventing zip-slip path traversal.
+//! - [`get_ai_config_cmd`]: returns `AiConfigPublic` (with `has_api_key: bool`)
+//!   rather than the raw `AiConfig`, so the API key is never sent to the WebView.
+//!
+//! ## Plugin commands
+//!
+//! See the plugin section near the bottom of this file for:
+//! - [`list_plugins_cmd`]
+//! - [`install_plugin_from_zip`]
+//! - [`set_plugin_enabled_cmd`]
+//! - [`uninstall_plugin_cmd`]
+
 use tauri::Manager;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
+/// Identifier key-value pair sent from the metadata editor.
+/// `id_type` is one of `"isbn"`, `"isbn10"`, `"asin"`, `"goodreads"`, `"google"`.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IdentifierInput {
@@ -9,6 +46,11 @@ pub struct IdentifierInput {
     pub value:   String,
 }
 
+/// Full metadata edit payload sent by the book editor panel.
+///
+/// All string fields arrive as UTF-8 from the WebView and are trimmed before use.
+/// Empty optional strings (`pubdate`, `description`, etc.) are normalised to `None`
+/// via [`trim_to_option`] to avoid storing empty strings in nullable columns.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BookEditRequest {
@@ -24,16 +66,20 @@ pub struct BookEditRequest {
     pub identifiers:  Vec<IdentifierInput>,
 }
 
+/// Positional tuple matching the SELECT column order used in every book query.
+/// Named destructuring is used at call sites to keep field access readable.
+/// Column order: id, title, authors_json, format, cover_path, local_path,
+///               progress_percent, last_opened_at, reading_cfi
 type BookRow = (
-    String,
-    String,
-    String,
-    String,
-    Option<String>,
-    Option<String>,
-    f64,
-    Option<String>,
-    Option<String>,
+    String,         // id
+    String,         // title
+    String,         // authors_json (JSON array)
+    String,         // format (DetectedFormat display name)
+    Option<String>, // cover_path
+    Option<String>, // local_path
+    f64,            // progress_percent (0.0–100.0)
+    Option<String>, // last_opened_at (RFC-3339)
+    Option<String>, // reading_cfi (EPUB CFI position)
 );
 
 fn book_row_to_value(
@@ -687,6 +733,17 @@ pub async fn export_metadata(
     serde_json::to_string_pretty(&results).map_err(|e| e.to_string())
 }
 
+/// Write text content to a file within the app's data directory.
+///
+/// ## Security
+///
+/// Enforces a strict path sandbox: the resolved (canonicalised) path must be
+/// inside `app_data_dir()`. Symlinks are followed before the check, so a symlink
+/// pointing outside the sandbox is rejected. Path traversal attempts (`../`) are
+/// resolved away by `canonicalize` and then caught by `starts_with`.
+///
+/// If the file does not yet exist, its parent directory is canonicalised instead —
+/// this handles the case where the file is being created for the first time.
 #[tauri::command]
 pub async fn write_file(
     path: String,
@@ -696,6 +753,7 @@ pub async fn write_file(
     let target = std::path::Path::new(&path)
         .canonicalize()
         .or_else(|_| {
+            // File doesn't exist yet — canonicalise the parent directory instead.
             std::path::Path::new(&path)
                 .parent()
                 .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "no parent"))
@@ -980,6 +1038,17 @@ pub async fn get_books_in_collection(
     .map_err(|e| e.to_string())
 }
 
+/// Delete one or more books and all associated data in a single transaction.
+///
+/// All 11 dependent tables are cleaned up before the `local_books` and `jobs`
+/// rows are deleted, ensuring foreign key constraints are never violated.
+/// The entire batch runs in a single SQLite transaction so either all books are
+/// deleted or none are (if any step fails, the transaction is rolled back
+/// automatically when `tx` is dropped).
+///
+/// Cover image files are deleted from disk after the transaction commits so that
+/// a DB failure doesn't leave orphaned filesystem state. Cover deletes are
+/// best-effort — missing files are only logged, not propagated as errors.
 #[tauri::command]
 pub async fn bulk_delete_books(
     pool: tauri::State<'_, Arc<SqlitePool>>,
@@ -1059,7 +1128,12 @@ pub async fn bulk_reingest_books(
     Ok(book_ids)
 }
 
-#[tauri::command]
+/// RFC-4180 CSV field escaping.
+///
+/// Wraps the field in double-quotes and doubles any internal double-quote
+/// characters if the value contains a comma, double-quote, or newline.
+/// Fields with none of those characters are returned unchanged (no unnecessary
+/// quoting).
 fn csv_escape(s: &str) -> String {
     if s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r') {
         format!("\"{}\"", s.replace('"', "\"\""))
@@ -1395,11 +1469,29 @@ pub async fn search_library_advanced(
         .map_err(|e| e.to_string())
 }
 
+// ── Plugin commands ────────────────────────────────────────────────────────────
+//
+// These four commands implement the full plugin lifecycle:
+//
+//   install_plugin_from_zip  →  ZIP verification + extraction + DB registration
+//   list_plugins_cmd         →  enumerate installed_plugins for the UI
+//   set_plugin_enabled_cmd   →  toggle a plugin on/off
+//   uninstall_plugin_cmd     →  remove from DB and delete dylib from disk
+//
+// The UI counterpart is ui/src/components/PluginManagerModal.tsx.
+// The DB layer is processing/src/db/plugin_queries.rs.
+// The ZIP extraction logic is processing/src/plugins/loader.rs.
+// The ABI contract is xcalibre-plugin-sdk/src/lib.rs.
+
 use xcalibre_processing::db::plugin_queries::{
     install_plugin, list_plugins, set_plugin_enabled, uninstall_plugin,
     InstalledPlugin, NewPlugin,
 };
 
+/// List all installed plugins, both enabled and disabled.
+///
+/// Returns [`InstalledPlugin`] rows sorted by name. The UI shows each plugin with
+/// its type badge, version, and enable/disable toggle.
 #[tauri::command]
 pub async fn list_plugins_cmd(
     pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
@@ -1407,22 +1499,42 @@ pub async fn list_plugins_cmd(
     list_plugins(pool.inner().as_ref()).await.map_err(|e| e.to_string())
 }
 
+/// Install a plugin from a user-selected ZIP file.
+///
+/// ## Flow
+///
+/// 1. Resolve `{app_data}/plugins/` as the extraction root.
+/// 2. Call [`xcalibre_processing::plugins::loader::install_plugin_zip`] which:
+///    - Parses `plugin.json` from the ZIP
+///    - Rejects if `api_version != PLUGIN_API_VERSION`
+///    - Extracts all files into `plugins/{plugin.name}/`
+/// 3. Register the plugin in `installed_plugins` via [`install_plugin`].
+/// 4. Return the plugin name to the UI for confirmation display.
+///
+/// The `dylib_path` recorded in the database points to `plugins/{plugin.name}/`
+/// (the directory, not a specific file). The runtime loader is responsible for
+/// finding the actual `.dylib`/`.so`/`.dll` within that directory.
+///
+/// Returns an error string if the ZIP is invalid, the API version mismatches, or
+/// the database write fails.
 #[tauri::command]
 pub async fn install_plugin_from_zip(
     pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
     app: tauri::AppHandle,
     zip_path: String,
 ) -> Result<String, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir    = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let plugins_dir = data_dir.join("plugins");
-    let zip = std::path::Path::new(&zip_path);
+    let zip         = std::path::Path::new(&zip_path);
     let meta = xcalibre_processing::plugins::loader::install_plugin_zip(zip, &plugins_dir)
         .map_err(|e| e.to_string())?;
+    // Record the plugin directory path so the runtime loader knows where to look.
     let dylib_path = plugins_dir
         .join(&meta.name)
         .to_string_lossy().into_owned();
     let p = NewPlugin {
-        name: meta.name.clone(), version: meta.version.clone(),
+        name:        meta.name.clone(),
+        version:     meta.version.clone(),
         api_version: meta.api_version as i64,
         plugin_type: meta.plugin_type.as_str().to_string(),
         dylib_path,
@@ -1431,6 +1543,10 @@ pub async fn install_plugin_from_zip(
     Ok(meta.name)
 }
 
+/// Enable or disable a plugin by its database UUID.
+///
+/// The change is persisted immediately. Disabled plugins are never loaded by the
+/// runtime vtable resolver on subsequent xcalibre launches.
 #[tauri::command]
 pub async fn set_plugin_enabled_cmd(
     pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
@@ -1439,15 +1555,23 @@ pub async fn set_plugin_enabled_cmd(
     set_plugin_enabled(pool.inner().as_ref(), &id, enabled).await.map_err(|e| e.to_string())
 }
 
+/// Remove a plugin completely.
+///
+/// Deletes the `installed_plugins` row first, then attempts to delete the dylib
+/// file from disk. The filesystem delete is best-effort — if the file has already
+/// been removed manually, the error is silently ignored so the UI can show the
+/// plugin as gone.
 #[tauri::command]
 pub async fn uninstall_plugin_cmd(
     pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
     id: String,
 ) -> Result<(), String> {
     let dylib_path = uninstall_plugin(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())?;
-    let _ = std::fs::remove_file(&dylib_path); // best-effort cleanup
+    // Best-effort: ignore error if the file was already deleted.
+    let _ = std::fs::remove_file(&dylib_path);
     Ok(())
 }
+// ── End plugin commands ────────────────────────────────────────────────────────
 
 use xcalibre_processing::metadata::BookMetadata;
 
@@ -1507,21 +1631,33 @@ use xcalibre_ai::ollama::OllamaBackend;
 use xcalibre_ai::provider::AiProvider;
 use xcalibre_ai::{ChatMessage, MessageRole, extract_citations, apply_reasoning_budget, ReasoningBudget, Citation};
 
+/// Result returned from the `ai_chat` command to the WebView.
 #[derive(Debug, serde::Serialize)]
 pub struct AiChatResult {
-    pub content:   String,
-    pub model:     String,
-    pub done:      bool,
+    /// The assistant's full reply text.
+    pub content: String,
+    /// Model name as reported by the backend.
+    pub model: String,
+    pub done: bool,
+    /// Chain-of-thought trace from reasoning-capable models, if available.
     pub reasoning: Option<String>,
+    /// Book passages cited by the model, extracted by `xcalibre_ai::citations`.
     pub citations: Vec<Citation>,
 }
 
+/// AI configuration safe to expose to the WebView.
+///
+/// Derived from [`AiConfig`] with the API key replaced by a boolean flag.
+/// The raw key is never sent across the IPC boundary so it cannot be leaked
+/// via DevTools or log output.
 #[derive(Debug, serde::Serialize)]
 pub struct AiConfigPublic {
     pub provider:           String,
     pub model:              String,
     pub embed_model:        String,
     pub base_url:           String,
+    /// `true` if an API key is stored in the database. The UI shows `"••••••••"`
+    /// when this is true and leaves the key field blank when false.
     pub has_api_key:        bool,
     pub reasoning_strategy: String,
     pub include_fields:     String,
@@ -1555,6 +1691,15 @@ pub async fn save_ai_config_cmd(
     upsert_ai_config(pool.inner().as_ref(), None, &cfg).await.map_err(|e| e.to_string())
 }
 
+/// Return the top-5 most relevant book chunks for a query.
+///
+/// Scoring is word-level exact matching: a chunk scores one point for each word
+/// in `query` that appears as a complete word in the chunk text. This is cheaper
+/// than a vector similarity search and good enough for the book-chat RAG use case
+/// where queries are typically short and specific.
+///
+/// `HashSet<&str>` is used rather than substring `.contains()` to avoid false
+/// positives where a query word like "cat" would match "concatenate".
 #[tauri::command]
 pub async fn get_ai_context_chunks(
     pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,

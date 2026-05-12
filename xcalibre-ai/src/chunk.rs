@@ -1,3 +1,23 @@
+//! Text chunking for RAG (Retrieval-Augmented Generation).
+//!
+//! Book text is split into overlapping fixed-size chunks before being stored in
+//! `book_chunks`. At query time, the most relevant chunks are retrieved and
+//! injected into the AI system prompt as context.
+//!
+//! ## Algorithm
+//!
+//! 1. Split the full text into sentences (`.`, `!`, `?` followed by a space).
+//! 2. Split sentences that exceed `max_chars` at word boundaries.
+//! 3. Accumulate sentences into chunks until the next sentence would exceed
+//!    `max_chars`.
+//! 4. When a chunk is full, carry the last `overlap_chars` characters into the
+//!    next chunk so that context spanning chunk boundaries is not lost.
+//!
+//! The token approximation used throughout (`chars / 4`) is a rough heuristic
+//! (~4 characters per token for English prose). Actual token counts depend on
+//! the model's tokeniser and may differ, but the heuristic is accurate enough
+//! for chunking purposes.
+
 /// Configuration for the chunking algorithm.
 #[derive(Debug, Clone)]
 pub struct ChunkConfig {

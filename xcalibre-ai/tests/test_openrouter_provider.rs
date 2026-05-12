@@ -20,9 +20,13 @@ fn test_openrouter_backend_model() {
 }
 
 #[tokio::test]
-async fn test_openrouter_errors_with_bad_key() {
+async fn test_openrouter_errors_on_unreachable_url() {
+    // OpenRouter's /models endpoint is public and returns 200 regardless of the
+    // API key, so we cannot use a bad-key test. Instead, point at an address
+    // that is guaranteed to refuse connections to verify that network errors
+    // propagate as Err rather than panicking.
     let b = OpenRouterBackend::new(
-        "https://openrouter.ai/api/v1",
+        "http://127.0.0.1:1",
         "invalid",
         "mistralai/mistral-7b-instruct",
         "openai/text-embedding-ada-002",

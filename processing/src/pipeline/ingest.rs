@@ -1,3 +1,33 @@
+//! Ebook ingestion pipeline: format detection, integrity validation, and job creation.
+//!
+//! ## Entry point
+//!
+//! [`run_ingest`] is the main function. It is called by `pipeline::local::import_local_book`
+//! which is in turn called by the `ingest_file` Tauri command.
+//!
+//! ## Format detection
+//!
+//! [`detect_format`] reads the first 4096 bytes of a file and applies a tiered
+//! detection strategy. See [`crate::plugins::DetectedFormat`] for the full
+//! precedence order and notes on each format.
+//!
+//! ## Duplicate detection
+//!
+//! Files are SHA-256 hashed and the hash is checked against existing `COMPLETED`
+//! jobs. Duplicate imports return [`ProcessingError::UnsupportedFormat`] with a
+//! message beginning `"already imported:"`. The Tauri command layer surfaces this
+//! as a user-friendly error toast.
+//!
+//! ## Job lifecycle
+//!
+//! After `run_ingest` creates the job with `status = 'PENDING'`, the processing
+//! pipeline picks it up asynchronously and transitions it through:
+//!
+//! ```text
+//! PENDING → READY_TO_PUSH → PUSHING → COMPLETED
+//!                        ↘ RETRYING → FAILED
+//! ```
+
 use crate::error::ProcessingError;
 use crate::plugins::DetectedFormat;
 use crate::utils::hash::sha256_file;
@@ -6,14 +36,27 @@ use std::fs::File;
 use std::io::{BufReader, Read, Seek};
 use std::path::Path;
 
+/// Result returned by [`run_ingest`] on success.
 #[derive(Debug)]
 pub struct IngestResult {
+    /// UUID of the newly-created `jobs` row.
     pub job_id: String,
+    /// Detected file format.
     pub format: DetectedFormat,
+    /// SHA-256 hex digest of the file content. Stored in `jobs.file_sha256`
+    /// for duplicate detection on subsequent imports.
     pub sha256: String,
     pub file_size: u64,
 }
 
+/// Detect the ebook format of `path` by inspecting file content (magic bytes).
+///
+/// Reading magic bytes rather than trusting the extension prevents misidentified
+/// files from entering the pipeline in the wrong format. Extension is used only
+/// as a final tiebreaker for formats with no reliable binary signature.
+///
+/// Returns [`ProcessingError::UnsupportedFormat`] if the file does not match any
+/// known format.
 pub fn detect_format(path: &Path) -> Result<DetectedFormat, ProcessingError> {
     let ext = path
         .extension()
@@ -26,6 +69,9 @@ pub fn detect_format(path: &Path) -> Result<DetectedFormat, ProcessingError> {
     let n = file.read(&mut header).map_err(ProcessingError::IoError)?;
     let header = &header[..n];
 
+    // ZIP-based formats share the PK\x03\x04 local-file header signature.
+    // Each sub-probe opens the ZIP a second time to check inner entries.
+    // Order matters: EPUB and DOCX are checked before the CBZ fallthrough.
     if header.starts_with(b"PK\x03\x04") {
         if is_epub(path) {
             return Ok(DetectedFormat::Epub);
@@ -39,6 +85,7 @@ pub fn detect_format(path: &Path) -> Result<DetectedFormat, ProcessingError> {
         if is_htmlz(path) {
             return Ok(DetectedFormat::Htmlz);
         }
+        // Any other ZIP defaults to CBZ (comic book archive).
         return Ok(DetectedFormat::Cbz);
     }
 
@@ -46,6 +93,8 @@ pub fn detect_format(path: &Path) -> Result<DetectedFormat, ProcessingError> {
         return Ok(DetectedFormat::Pdf);
     }
 
+    // Mobipocket PDB header: "BOOKMOBI" appears at bytes 60–68.
+    // AZW3 and AZW4 use the same MOBI container; the extension disambiguates.
     if header.len() >= 68 && &header[60..68] == b"BOOKMOBI" {
         return match ext.as_str() {
             "azw3" => Ok(DetectedFormat::Azw3),
@@ -337,6 +386,20 @@ pub fn validate_integrity(path: &Path, format: &DetectedFormat) -> Result<(), Pr
     Ok(())
 }
 
+/// Ingest a single ebook file into the library.
+///
+/// ## What this does
+///
+/// 1. **Format detection** — calls [`detect_format`] to identify the file by
+///    magic bytes (not extension).
+/// 2. **Integrity validation** — calls [`validate_integrity`] to catch truncated
+///    or corrupt files before they enter the library.
+/// 3. **SHA-256 hashing** — computes the file hash for duplicate detection.
+/// 4. **Duplicate check** — rejects files already present as `COMPLETED` jobs.
+/// 5. **Job creation** — inserts a `PENDING` job row into the database.
+///
+/// Steps 1–3 run on a blocking thread (`spawn_blocking`) because they involve
+/// synchronous I/O and CPU work that would otherwise block the async runtime.
 pub async fn run_ingest(
     pool: &SqlitePool,
     path: &Path,

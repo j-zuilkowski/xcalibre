@@ -1396,3 +1396,75 @@ pub fn add_to_dictionary(word: String) {
 pub fn set_spell_check_language(_language: String) {
     // TODO: call [NSSpellChecker setLanguage:] on macOS
 }
+
+use xcalibre_processing::db::ai_queries::{get_ai_config, upsert_ai_config, get_book_chunks, AiConfig};
+use xcalibre_ai::ollama::OllamaBackend;
+use xcalibre_ai::provider::AiProvider;
+use xcalibre_ai::{ChatMessage, MessageRole};
+
+#[tauri::command]
+pub async fn get_ai_config_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+) -> Result<Option<AiConfig>, String> {
+    get_ai_config(pool.inner().as_ref(), None).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_ai_config_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    provider: String, model: String, embed_model: String,
+    base_url: String, reasoning_strategy: String,
+) -> Result<(), String> {
+    let cfg = AiConfig { provider, model, embed_model, base_url, api_key: None,
+        reasoning_strategy, include_fields: "[\"title\",\"authors\",\"tags\"]".into() };
+    upsert_ai_config(pool.inner().as_ref(), None, &cfg).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_ai_context_chunks(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+    query: String,
+) -> Result<Vec<String>, String> {
+    let chunks = get_book_chunks(pool.inner().as_ref(), &book_id)
+        .await.map_err(|e| e.to_string())?;
+    let query_lower = query.to_lowercase();
+    let mut scored: Vec<(usize, &str)> = chunks.iter()
+        .map(|(_, text, _)| {
+            let score = text.to_lowercase().split_whitespace()
+                .filter(|w| query_lower.contains(*w)).count();
+            (score, text.as_str())
+        })
+        .collect();
+    scored.sort_by(|a, b| b.0.cmp(&a.0));
+    Ok(scored.into_iter().take(5).map(|(_, t)| t.to_string()).collect())
+}
+
+#[tauri::command]
+pub async fn ai_chat(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id: String,
+    query: String,
+    history: Vec<serde_json::Value>,
+) -> Result<xcalibre_ai::ChatResponse, String> {
+    let cfg = get_ai_config(pool.inner().as_ref(), None)
+        .await.map_err(|e| e.to_string())?
+        .ok_or("No AI provider configured")?;
+    let backend = OllamaBackend::new(&cfg.base_url, &cfg.model, &cfg.embed_model);
+    let chunks = get_book_chunks(pool.inner().as_ref(), &book_id)
+        .await.map_err(|e| e.to_string())?;
+    let context: String = chunks.iter().take(5)
+        .map(|(_, t, _)| t.as_str()).collect::<Vec<_>>().join("\n\n");
+    let system = format!("You are a helpful assistant discussing a book. \
+        Relevant passages:\n\n{}\n\nAnswer the user's question based on these passages \
+        and your general knowledge.", context);
+    let mut messages = vec![ChatMessage { role: MessageRole::System, content: system }];
+    for msg in &history {
+        if let (Some(role), Some(content)) = (msg["role"].as_str(), msg["content"].as_str()) {
+            let r = if role == "user" { MessageRole::User } else { MessageRole::Assistant };
+            messages.push(ChatMessage { role: r, content: content.to_string() });
+        }
+    }
+    messages.push(ChatMessage { role: MessageRole::User, content: query });
+    backend.chat(&messages, None).await.map_err(|e| e.to_string())
+}

@@ -119,6 +119,10 @@ fn main() {
             commands::get_suggestions,
             commands::add_to_dictionary,
             commands::set_spell_check_language,
+            commands::get_ai_config_cmd,
+            commands::save_ai_config_cmd,
+            commands::get_ai_context_chunks,
+            commands::ai_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

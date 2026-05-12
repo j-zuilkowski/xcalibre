@@ -7,7 +7,7 @@ use xcalibre_processing::metadata::BookMetadata;
 use xcalibre_processing::text::ExtractedText;
 
 fn kfx_fixture() -> PathBuf {
-    PathBuf::from("tests/fixtures/fixture.kfx")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/fixture.kfx")
 }
 
 /// Build a minimal .kfx fixture (SQLite DB with the required KFX tables).
@@ -21,21 +21,21 @@ fn create_kfx_fixture() {
     // We create a minimal version that our parser can read.
     let conn = rusqlite::Connection::open(&path).unwrap();
     conn.execute_batch("
-        CREATE TABLE fragments (
+        CREATE TABLE IF NOT EXISTS fragments (
             id          TEXT PRIMARY KEY,
             ftype       TEXT NOT NULL,
             payload     BLOB
         );
-        CREATE TABLE fragment_properties (
+        CREATE TABLE IF NOT EXISTS fragment_properties (
             fragment_id TEXT NOT NULL,
             key         TEXT NOT NULL,
             value       TEXT
         );
-        INSERT INTO fragments VALUES ('meta', '$270', NULL);
-        INSERT INTO fragment_properties VALUES ('meta', 'title', 'KFX Test Book');
-        INSERT INTO fragment_properties VALUES ('meta', 'author', 'KFX Author');
-        INSERT INTO fragment_properties VALUES ('meta', 'language', 'en');
-        INSERT INTO fragments VALUES ('content_1', '$608', X'48656C6C6F20776F726C64');
+        INSERT OR REPLACE INTO fragments VALUES ('meta', '$270', NULL);
+        INSERT OR REPLACE INTO fragment_properties VALUES ('meta', 'title', 'KFX Test Book');
+        INSERT OR REPLACE INTO fragment_properties VALUES ('meta', 'author', 'KFX Author');
+        INSERT OR REPLACE INTO fragment_properties VALUES ('meta', 'language', 'en');
+        INSERT OR REPLACE INTO fragments VALUES ('content_1', '$608', X'48656C6C6F20776F726C64');
     ").unwrap();
 }
 

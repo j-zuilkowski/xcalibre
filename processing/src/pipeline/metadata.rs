@@ -28,7 +28,7 @@ pub async fn run_metadata(
         DetectedFormat::Tcr => metadata::tcr::extract(path)?,
         DetectedFormat::Djvu => metadata::djvu::extract(path)?,
         DetectedFormat::Lit => metadata::lit::extract(path)?,
-        DetectedFormat::Kfx => return Err(ProcessingError::UnsupportedFormat("KFX".into())),
+        DetectedFormat::Kfx => metadata::kfx::extract(path)?,
         DetectedFormat::Cbz | DetectedFormat::Cbr => metadata::cbz::extract(path)?,
         DetectedFormat::Txt => BookMetadata::default(),
     };

@@ -47,8 +47,8 @@ fn strip_rtf(rtf: &str) -> String {
                         }
                         if chars.peek() == Some(&' ') { chars.next(); }
                         match word.as_str() {
-                            "par" | "line" | "page" => { if skip_group == 0 { out.push('\n'); } }
-                            "tab" => { if skip_group == 0 { out.push('\t'); } }
+                            "par" | "line" | "page" if skip_group == 0 => { out.push('\n'); }
+                            "tab" if skip_group == 0 => { out.push('\t'); }
                             _ => {}
                         }
                     }

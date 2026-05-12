@@ -9,3 +9,4 @@ pub mod annotation_queries;
 pub mod library_queries;
 pub mod plugin_queries;
 pub mod ai_queries;
+pub mod vlib_queries;

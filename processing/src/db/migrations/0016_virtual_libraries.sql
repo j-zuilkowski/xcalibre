@@ -1,7 +1,7 @@
 -- Virtual libraries: saved searches that appear as dynamic collections.
 CREATE TABLE IF NOT EXISTS virtual_libraries (
     id          TEXT NOT NULL PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-    library_id  TEXT REFERENCES libraries(id) ON DELETE CASCADE,
+    library_id  TEXT,
     name        TEXT NOT NULL,
     search_expr TEXT NOT NULL,   -- serialized QueryNode expression string
     sort_field  TEXT NOT NULL DEFAULT 'title',

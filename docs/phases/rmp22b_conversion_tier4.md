@@ -39,8 +39,7 @@ pub fn epub_to_tcr(epub_path: &Path, out_path: &Path) -> Result<(), ProcessingEr
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let spine = container.spine_items()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    let spine = container.spine_hrefs();
 
     let mut text = String::new();
     for href in &spine {
@@ -115,10 +114,11 @@ pub fn epub_to_snb_text(epub_path: &Path, out_path: &Path) -> Result<(), Process
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let opf   = container.opf().ok();
-    let title = opf.as_ref().and_then(|o| o.title()).unwrap_or("Untitled");
-    let spine = container.spine_items()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    let opf_path = container.opf_path().to_string();
+    let opf_xml  = String::from_utf8(container.read_item(&opf_path).unwrap_or_default()).unwrap_or_default();
+    let title = xcalibre_epub::opf::EpubOPF::parse(&opf_xml)
+        .ok().and_then(|opf| opf.title).unwrap_or_else(|| "Untitled".to_string());
+    let spine = container.spine_hrefs();
 
     let mut file = std::fs::File::create(out_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
@@ -178,8 +178,7 @@ use xcalibre_epub::Container;
 pub fn epub_to_pml(epub_path: &Path, out_path: &Path) -> Result<(), ProcessingError> {
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-    let spine = container.spine_items()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    let spine = container.spine_hrefs();
 
     let mut file = std::fs::File::create(out_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
@@ -266,10 +265,11 @@ pub fn epub_to_rb(epub_path: &Path, out_path: &Path) -> Result<(), ProcessingErr
     // Use the same approach as PDB but with HTML content type
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-    let opf   = container.opf().ok();
-    let title = opf.as_ref().and_then(|o| o.title()).unwrap_or("Untitled");
-    let spine = container.spine_items()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    let opf_path = container.opf_path().to_string();
+    let opf_xml  = String::from_utf8(container.read_item(&opf_path).unwrap_or_default()).unwrap_or_default();
+    let title = xcalibre_epub::opf::EpubOPF::parse(&opf_xml)
+        .ok().and_then(|opf| opf.title).unwrap_or_else(|| "Untitled".to_string());
+    let spine = container.spine_hrefs();
 
     let mut html = format!("<html><head><title>{}</title></head><body>", title);
     for href in &spine {
@@ -367,8 +367,7 @@ fn epub_to_lrf_native(epub_path: &Path, out_path: &Path) -> Result<(), Processin
 
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-    let spine = container.spine_items()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    let spine = container.spine_hrefs();
 
     let mut text = String::new();
     for href in &spine {
@@ -409,36 +408,71 @@ git commit -m "R22b-T04: EPUB→LRF — all LRF tests green"
 
 ## R22b-T05
 
-In `src-tauri/src/commands/convert.rs`, add Tier 4 formats:
+**IMPORTANT — correct file:** Edit `src-tauri/src/commands.rs` (the large monolithic file, ~line 1560). Do NOT edit `src-tauri/src/commands/convert.rs` — that file is orphaned and never compiled.
+
+Also note: KEPUB is missing from `commands.rs` due to a prior omission (rmp16b wrote to the wrong file). Add it here alongside the Tier 4 formats.
+
+In `src-tauri/src/commands.rs`, update the existing `convert_book` block:
 ```rust
-use xcalibre_processing::convert::{lrf, pdb, snb, tcr};
+// Replace the import line:
+use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, kepub, fb2, rtf, htmlz, lrf, pdb, snb, tcr};
 
-// Add to OutputFormat enum:
-Lrf, Pdb, Pml, Rb, Snb, Tcr,
+// Replace the OutputFormat enum (currently Txt/Html/Docx/Pdf/Mobi/Fb2/Rtf/Htmlz):
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum OutputFormat {
+    Txt, Html, Docx,
+    Pdf, Mobi, Kepub,
+    Fb2, Rtf, Htmlz,
+    Lrf, Pdb, Pml, Rb, Snb, Tcr,
+}
 
-// In path match:
-OutputFormat::Lrf => ("lrf", dir.join(format!("{stem}.lrf"))),
-OutputFormat::Pdb => ("pdb", dir.join(format!("{stem}.pdb"))),
-OutputFormat::Pml => ("pml", dir.join(format!("{stem}.pml"))),
-OutputFormat::Rb  => ("rb",  dir.join(format!("{stem}.rb"))),
-OutputFormat::Snb => ("snb", dir.join(format!("{stem}.snb"))),
-OutputFormat::Tcr => ("tcr", dir.join(format!("{stem}.tcr"))),
+// Replace the out_path match (add missing arms):
+let out_path = match output_format {
+    OutputFormat::Txt   => dir.join(format!("{stem}.txt")),
+    OutputFormat::Html  => dir.join(format!("{stem}.html")),
+    OutputFormat::Docx  => dir.join(format!("{stem}.docx")),
+    OutputFormat::Pdf   => dir.join(format!("{stem}.pdf")),
+    OutputFormat::Mobi  => dir.join(format!("{stem}.mobi")),
+    OutputFormat::Kepub => dir.join(format!("{stem}.kepub.epub")),
+    OutputFormat::Fb2   => dir.join(format!("{stem}.fb2")),
+    OutputFormat::Rtf   => dir.join(format!("{stem}.rtf")),
+    OutputFormat::Htmlz => dir.join(format!("{stem}.htmlz")),
+    OutputFormat::Lrf   => dir.join(format!("{stem}.lrf")),
+    OutputFormat::Pdb   => dir.join(format!("{stem}.pdb")),
+    OutputFormat::Pml   => dir.join(format!("{stem}.pml")),
+    OutputFormat::Rb    => dir.join(format!("{stem}.rb")),
+    OutputFormat::Snb   => dir.join(format!("{stem}.snb")),
+    OutputFormat::Tcr   => dir.join(format!("{stem}.tcr")),
+};
 
-// In conversion match:
-OutputFormat::Lrf => lrf::epub_to_lrf(&epub, &out_path).map_err(|e| e.to_string())?,
-OutputFormat::Pdb => pdb::epub_to_pdb(&epub, &out_path).map_err(|e| e.to_string())?,
-OutputFormat::Pml => pdb::epub_to_pml(&epub, &out_path).map_err(|e| e.to_string())?,
-OutputFormat::Rb  => pdb::epub_to_rb(&epub, &out_path).map_err(|e| e.to_string())?,
-OutputFormat::Snb => snb::epub_to_snb_text(&epub, &out_path).map_err(|e| e.to_string())?,
-OutputFormat::Tcr => tcr::epub_to_tcr(&epub, &out_path).map_err(|e| e.to_string())?,
+// Replace the conversion dispatch match (add missing arms):
+match output_format {
+    OutputFormat::Txt   => txt::epub_to_txt(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Html  => html::epub_to_html(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Docx  => docx::epub_to_docx(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Pdf   => pdf::epub_to_pdf(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Mobi  => mobi::epub_to_mobi(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Kepub => kepub::epub_to_kepub(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Fb2   => fb2::epub_to_fb2(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Rtf   => rtf::epub_to_rtf(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Htmlz => htmlz::epub_to_htmlz(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Lrf   => lrf::epub_to_lrf(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Pdb   => pdb::epub_to_pdb(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Pml   => pdb::epub_to_pml(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Rb    => pdb::epub_to_rb(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Snb   => snb::epub_to_snb_text(&epub, &out_path).map_err(|e| e.to_string())?,
+    OutputFormat::Tcr   => tcr::epub_to_tcr(&epub, &out_path).map_err(|e| e.to_string())?,
+}
 ```
 
-In `ui/src/components/ConversionDialog.tsx`:
+In `ui/src/components/ConversionDialog.tsx`, update the type union and add options after HTMLZ:
 ```tsx
 type OutputFormat = "TXT" | "HTML" | "DOCX" | "PDF" | "MOBI" | "KEPUB" |
                    "FB2" | "RTF" | "HTMLZ" | "LRF" | "PDB" | "PML" | "RB" | "SNB" | "TCR"
 
-// Add to <select>:
+// Add after <option value="HTMLZ">HTMLZ</option>:
+<option value="KEPUB">KEPUB</option>
 <optgroup label="Tier 4 (Legacy)">
   <option value="LRF">LRF</option>
   <option value="PDB">PDB</option>
@@ -450,10 +484,10 @@ type OutputFormat = "TXT" | "HTML" | "DOCX" | "PDF" | "MOBI" | "KEPUB" |
 ```
 
 ```bash
-cargo build --workspace
+cargo check --workspace 2>&1 | grep "^error"
 cd ui && npm test -- ConversionDialog && cd ..
-git add src-tauri/src/commands/convert.rs ui/src/components/ConversionDialog.tsx
-git commit -m "R22b-T05: all Tier 4 formats in convert_book and ConversionDialog"
+git add src-tauri/src/commands.rs ui/src/components/ConversionDialog.tsx
+git commit -m "R22b-T05: KEPUB + all Tier 4 formats in convert_book and ConversionDialog"
 ```
 
 ---

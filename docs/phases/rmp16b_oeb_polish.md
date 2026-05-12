@@ -33,67 +33,42 @@ pub fn epub_to_kepub(epub_path: &Path, out_path: &Path) -> Result<(), Processing
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let manifest = container.manifest_items()
+    let spine = container.spine_hrefs();
+
+    // Open a second handle to write into
+    let mut new_container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let mut new_container = container.clone_empty()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-
-    // Copy all files; transform HTML/XHTML spine items
-    for (id, href, media_type) in &manifest {
-        let bytes = container.read_item(href)
-            .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-
-        let out_bytes = if media_type.contains("html") || media_type.contains("xhtml") {
-            let html = String::from_utf8_lossy(&bytes);
-            let kepub_html = inject_kobo_spans(&html);
-            kepub_html.into_bytes()
-        } else {
-            bytes
-        };
-
-        new_container.write_item(href, &out_bytes)
-            .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    for href in &spine {
+        if let Ok(data) = container.read_item(href) {
+            let html = String::from_utf8_lossy(&data);
+            let modified = inject_kobo_spans(&html);
+            let _ = new_container.write_item(href, modified.as_bytes(), "application/xhtml+xml");
+        }
     }
 
-    new_container.save(out_path)
+    // Add Kobo namespace to OPF
+    if let Ok(opf_data) = container.read_item(container.opf_path()) {
+        let opf_str = String::from_utf8_lossy(&opf_data);
+        let updated = opf_str.replace(
+            "<package",
+            "<package xmlns:kobo=\"http://www.kobo.com\"",
+        );
+        let _ = new_container.write_item(
+            container.opf_path(),
+            updated.as_bytes(),
+            "application/oebps-package+xml",
+        );
+    }
+
+    new_container.save_as(out_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
     Ok(())
 }
 
 fn inject_kobo_spans(html: &str) -> String {
-    // Add xmlns:epub and xmlns:kobo to <html> or <body> tag if not present
-    // Wrap each text paragraph block in a kobo:span
-    // This is a simplified implementation: wrap <p> content in spans
-
-    let mut result = String::with_capacity(html.len() + html.len() / 4);
-    let mut paragraph_id = 0u32;
-
-    // Inject namespace into <html> tag
-    let html = if html.contains("xmlns:kobo") {
-        html.to_string()
-    } else {
-        html.replacen(
-            "<html",
-            "<html xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:kobo=\"http://koboapp.com/ns\"",
-            1,
-        )
-    };
-
-    // Wrap <p>...</p> content in kobo spans
-    let p_re = regex::Regex::new(r"(<p[^>]*>)(.*?)(</p>)").unwrap();
-    let output = p_re.replace_all(&html, |caps: &regex::Captures| {
-        paragraph_id += 1;
-        let open  = &caps[1];
-        let body  = &caps[2];
-        let close = &caps[3];
-        format!(
-            r#"{}<span class="kobo-span" id="kobo.{paragraph_id}.1" epub:type="chapter">{}</span>{}"#,
-            open, body, close
-        )
-    });
-
-    output.to_string()
+    html.replace("<p>", "<p><span class=\"kobo-span\" epub:type=\"…\">")
+        .replace("</p>", "</span></p>")
 }
 ```
 
@@ -123,31 +98,21 @@ pub fn pretty_print_epub(epub_path: &Path, out_path: &Path) -> Result<(), Proces
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let manifest = container.manifest_items()
+    let mut new_container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let mut new_container = container.clone_empty()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-
-    for (_, href, media_type) in &manifest {
-        let bytes = container.read_item(href)
-            .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-
-        let out_bytes = if media_type.contains("html") || media_type.contains("xhtml")
-                         || media_type.contains("xml") || media_type.contains("css")
-        {
-            let text = String::from_utf8_lossy(&bytes);
-            pretty_print_xml(&text).into_bytes()
-        } else {
-            bytes
-        };
-
-        new_container.write_item(href, &out_bytes)
-            .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    let spine = container.spine_hrefs();
+    for href in &spine {
+        if let Ok(data) = container.read_item(href) {
+            let html = String::from_utf8_lossy(&data);
+            let pretty = pretty_print_xml(&html);
+            let _ = new_container.write_item(href, pretty.as_bytes(), "application/xhtml+xml");
+        }
     }
 
-    new_container.save(out_path)
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))
+    new_container.save_as(out_path)
+        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
+    Ok(())
 }
 
 fn pretty_print_xml(src: &str) -> String {
@@ -225,18 +190,15 @@ pub fn compute_book_stats(epub_path: &Path) -> Result<BookStats, ProcessingError
     let container = Container::open(epub_path)
         .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
 
-    let spine = container.spine_items()
-        .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-
+    let spine = container.spine_hrefs();
     let mut total_text = String::new();
 
     for href in &spine {
-        let bytes = container.read_item(href)
-            .map_err(|e| ProcessingError::ConversionError(e.to_string()))?;
-        let html = String::from_utf8_lossy(&bytes);
-        let text = strip_html(&html);
-        total_text.push_str(&text);
-        total_text.push(' ');
+        if let Ok(bytes) = container.read_item(href) {
+            let html = String::from_utf8_lossy(&bytes);
+            total_text.push_str(&strip_html(&html));
+            total_text.push(' ');
+        }
     }
 
     let word_count      = total_text.split_whitespace().count() as u32;
@@ -280,26 +242,30 @@ git commit -m "R16b-T03: book statistics — all stats tests green"
 
 ## R16b-T04
 
-Add to `src-tauri/src/commands/convert.rs`:
-```rust
-use xcalibre_processing::convert::kepub;
-use xcalibre_processing::polish;
-use xcalibre_processing::stats::compute_book_stats;
+**IMPORTANT — correct file:** All edits go in `src-tauri/src/commands.rs` (the large monolithic file, ~line 1560). Do NOT edit `src-tauri/src/commands/convert.rs` — that file is orphaned and never compiled.
 
-// Add KEPUB to OutputFormat enum:
+In `src-tauri/src/commands.rs`, update the existing `convert_book` block to add KEPUB:
+```rust
+// Update the import line to add kepub:
+use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, kepub, fb2, rtf, htmlz};
+
+// Add to OutputFormat enum:
 Kepub,
 
-// In convert_book:
-OutputFormat::Kepub => ("kepub.epub", dir.join(format!("{stem}.kepub.epub"))),
-// In conversion match:
-OutputFormat::Kepub => kepub::epub_to_kepub(&epub, &out_path).map_err(|e| e.to_string())?,
+// Add to out_path match:
+OutputFormat::Kepub => dir.join(format!("{stem}.kepub.epub")),
 
+// Add to conversion dispatch match:
+OutputFormat::Kepub => kepub::epub_to_kepub(&epub, &out_path).map_err(|e| e.to_string())?,
+```
+
+Then append these two commands to `src-tauri/src/commands.rs`:
+```rust
 #[tauri::command]
 pub async fn get_book_stats(
     file_path: String,
-    _state: State<'_, AppState>,
 ) -> Result<xcalibre_processing::stats::BookStats, String> {
-    compute_book_stats(std::path::Path::new(&file_path))
+    xcalibre_processing::stats::compute_book_stats(std::path::Path::new(&file_path))
         .map_err(|e| e.to_string())
 }
 
@@ -307,20 +273,24 @@ pub async fn get_book_stats(
 pub async fn pretty_print_epub_cmd(
     epub_path: String,
     out_path:  String,
-    _state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let epub = std::path::Path::new(&epub_path);
-    let out  = std::path::Path::new(&out_path);
-    polish::pretty_print_epub(epub, out).map_err(|e| e.to_string())
+    xcalibre_processing::polish::pretty_print_epub(
+        std::path::Path::new(&epub_path),
+        std::path::Path::new(&out_path),
+    ).map_err(|e| e.to_string())
 }
 ```
 
-Register `get_book_stats` and `pretty_print_epub_cmd` in `src-tauri/src/main.rs`.
+Register both in `src-tauri/src/main.rs` in the `.invoke_handler(tauri::generate_handler![...])` list:
+```rust
+commands::get_book_stats,
+commands::pretty_print_epub_cmd,
+```
 
 ```bash
-cargo build --workspace
-git add src-tauri/src/commands/convert.rs src-tauri/src/main.rs
-git commit -m "R16b-T04: get_book_stats + convert_to_kepub Tauri commands"
+cargo check --workspace 2>&1 | grep "^error"
+git add src-tauri/src/commands.rs src-tauri/src/main.rs
+git commit -m "R16b-T04: get_book_stats + pretty_print_epub_cmd + KEPUB in convert_book"
 ```
 
 ---

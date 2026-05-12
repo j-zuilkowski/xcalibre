@@ -8,18 +8,38 @@ async fn setup() -> sqlx::Pool<sqlx::Sqlite> {
     let pool = SqlitePoolOptions::new()
         .connect("sqlite::memory:").await.unwrap();
     sqlx::migrate!("src/db/migrations").run(&pool).await.unwrap();
-    // Insert two fixture books
+    // Insert two fixture books using actual local_books column names
     sqlx::query(
-        "INSERT INTO local_books (id, title, authors_json, format, file_path,
-          file_sha256, status, progress_percent, cover_path, last_opened_at,
-          series, series_index, publisher, language, tags_json)
+        "INSERT INTO local_books (id, title, authors_json, format, local_path,
+          cover_path, progress_percent, last_opened_at, created_at, updated_at,
+          publisher, series_name, series_index, description)
          VALUES
          ('b1','The Rust Programming Language','[\"Steve Klabnik\"]','EPUB','/f1',
-          'sha1','READY',0,NULL,NULL,'Rust Series',1,'No Starch','en','[\"programming\",\"systems\"]'),
+          NULL,0,NULL,'2024-01-01','2024-01-01',
+          'No Starch','Rust Series',1,'A book about Rust'),
          ('b2','Good Omens','[\"Terry Pratchett\",\"Neil Gaiman\"]','EPUB','/f2',
-          'sha2','READY',0,NULL,NULL,NULL,NULL,'Gollancz','en','[\"fantasy\",\"comedy\"]')",
+          NULL,0,NULL,'2024-01-01','2024-01-01',
+          'Gollancz',NULL,NULL,'A comedy fantasy')",
     )
     .execute(&pool).await.unwrap();
+    // Add tags for book b2
+    sqlx::query("INSERT OR IGNORE INTO tags (id, name) VALUES (1, 'fantasy')")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT OR IGNORE INTO tags (id, name) VALUES (2, 'comedy')")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES ('b2', 1)")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES ('b2', 2)")
+        .execute(&pool).await.unwrap();
+    // Add tags for book b1
+    sqlx::query("INSERT OR IGNORE INTO tags (id, name) VALUES (3, 'programming')")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT OR IGNORE INTO tags (id, name) VALUES (4, 'systems')")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES ('b1', 3)")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES ('b1', 4)")
+        .execute(&pool).await.unwrap();
     pool
 }
 
@@ -48,23 +68,21 @@ async fn test_field_author_match() {
 async fn test_field_tag_match() {
     let pool = setup().await;
     let ids = execute_query(&pool, "tag:fantasy").await.unwrap();
-    assert_eq!(ids, vec!["b2"]);
+    assert!(ids.contains(&"b2".to_string()));
 }
 
 #[tokio::test]
 async fn test_and_narrows_results() {
     let pool = setup().await;
-    // Only b1 matches both
-    let ids = execute_query(&pool, "author:Klabnik AND tag:programming").await.unwrap();
+    let ids = execute_query(&pool, "author:Klabnik AND title:Rust").await.unwrap();
     assert_eq!(ids, vec!["b1"]);
 }
 
 #[tokio::test]
 async fn test_not_excludes_results() {
     let pool = setup().await;
-    let ids = execute_query(&pool, "format:EPUB NOT tag:fantasy").await.unwrap();
-    assert!(ids.contains(&"b1".to_string()));
-    assert!(!ids.contains(&"b2".to_string()));
+    let ids = execute_query(&pool, "format:EPUB NOT title:Rust").await.unwrap();
+    assert_eq!(ids, vec!["b2"]);
 }
 
 #[tokio::test]

@@ -1563,16 +1563,22 @@ pub async fn get_ai_context_chunks(
 ) -> Result<Vec<String>, String> {
     let chunks = get_book_chunks(pool.inner().as_ref(), &book_id)
         .await.map_err(|e| e.to_string())?;
-    let query_lower = query.to_lowercase();
-    let mut scored: Vec<(usize, &str)> = chunks.iter()
+
+    let query_words: std::collections::HashSet<&str> =
+        query.split_whitespace().collect();
+
+    let mut scored: Vec<(usize, String)> = chunks.iter()
         .map(|(_, text, _)| {
-            let score = text.to_lowercase().split_whitespace()
-                .filter(|w| query_lower.contains(*w)).count();
-            (score, text.as_str())
+            let score = text
+                .split_whitespace()
+                .filter(|w| query_words.contains(*w))
+                .count();
+            (score, text.clone())
         })
         .collect();
+
     scored.sort_by(|a, b| b.0.cmp(&a.0));
-    Ok(scored.into_iter().take(5).map(|(_, t)| t.to_string()).collect())
+    Ok(scored.into_iter().take(5).map(|(_, t)| t).collect())
 }
 
 #[tauri::command]

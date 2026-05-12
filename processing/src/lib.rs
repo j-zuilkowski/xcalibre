@@ -14,3 +14,4 @@ pub mod catalog;
 pub mod integrity;
 pub mod repair;
 pub mod library;
+pub mod search;

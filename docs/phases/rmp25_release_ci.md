@@ -20,6 +20,8 @@
 | R25-T10 | Fix bundle targets — `"all"` in tauri.conf.json, `--bundles deb` for Linux | ✅ |
 | R25-T11 | Fix cache key — remove `matrix.args` to avoid commas | ✅ |
 | R25-T12 | Fix v1.0.0 tag — force-move to HEAD after all fixes landed | ✅ |
+| R25-T13 | Fix CI: drop `target/` from cache (GLIBC mismatch), fix Vitest flag | ✅ |
+| R25-T14 | Fix Clippy: collapsible_match in rtf.rs, unnecessary_sort_by in commands.rs | ✅ |
 
 ---
 

@@ -21,3 +21,4 @@ pub mod convert;
 pub mod editor;
 pub mod polish;
 pub mod stats;
+pub mod backup;

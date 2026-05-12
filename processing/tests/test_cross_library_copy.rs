@@ -14,7 +14,7 @@ async fn test_copy_book_appears_in_target_library() {
 
     sqlx::query(
         "INSERT INTO libraries (id, name, db_path, cover_dir, layout, is_active)
-         VALUES ('lib1', 'Library One', ':memory:', '/tmp/cov1', 'in_place', 1)"
+         VALUES ('lib1', 'Library One', '/tmp/lib1.db', '/tmp/cov1', 'in_place', 1)"
     ).execute(&pool).await.unwrap();
     sqlx::query(
         "INSERT INTO local_books (id, title, authors_json, format, library_id, created_at, updated_at)
@@ -22,7 +22,7 @@ async fn test_copy_book_appears_in_target_library() {
     ).execute(&pool).await.unwrap();
     sqlx::query(
         "INSERT INTO libraries (id, name, db_path, cover_dir, layout, is_active)
-         VALUES ('lib2', 'Library Two', ':memory:', '/tmp/cov2', 'in_place', 0)"
+         VALUES ('lib2', 'Library Two', '/tmp/lib2.db', '/tmp/cov2', 'in_place', 0)"
     ).execute(&pool).await.unwrap();
 
     copy_book_to_library(
@@ -39,14 +39,14 @@ async fn test_copy_book_appears_in_target_library() {
 #[tokio::test]
 async fn test_copy_preserves_metadata() {
     let pool = setup().await;
-    for (lib_id, lib_name) in [("lib1", "Source"), ("lib2", "Target")] {
+    for (lib_id, lib_name, db_path) in [("lib1", "Source", "/tmp/src.db"), ("lib2", "Target", "/tmp/tgt.db")] {
         sqlx::query(
             "INSERT INTO libraries (id, name, db_path, cover_dir, layout, is_active)
-             VALUES (?, ?, ':memory:', '/tmp', 'in_place', 0)"
-        ).bind(lib_id).bind(lib_name).execute(&pool).await.unwrap();
+             VALUES (?, ?, ?, '/tmp', 'in_place', 0)"
+        ).bind(lib_id).bind(lib_name).bind(db_path).execute(&pool).await.unwrap();
     }
     sqlx::query(
-        "INSERT INTO local_books (id, title, authors_json, format, library_id, series, created_at, updated_at)
+        "INSERT INTO local_books (id, title, authors_json, format, library_id, series_name, created_at, updated_at)
          VALUES ('b1', 'Foundation', '[\"Isaac Asimov\"]', 'EPUB', 'lib1', 'Foundation Series', '2024-01-01', '2024-01-01')"
     ).execute(&pool).await.unwrap();
 
@@ -54,7 +54,7 @@ async fn test_copy_preserves_metadata() {
         .await.unwrap();
 
     let series: Option<String> = sqlx::query_scalar(
-        "SELECT series FROM local_books WHERE library_id='lib2' LIMIT 1"
+        "SELECT series_name FROM local_books WHERE library_id='lib2' LIMIT 1"
     ).fetch_optional(&pool).await.unwrap().flatten();
     assert_eq!(series.as_deref(), Some("Foundation Series"));
 }

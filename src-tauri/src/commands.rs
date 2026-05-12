@@ -1510,6 +1510,53 @@ pub async fn save_ai_response_as_note_cmd(
     ).await.map_err(|e| e.to_string())
 }
 
+use xcalibre_processing::backup::{export_library_backup, restore_library_backup, BackupOptions};
+use xcalibre_processing::db::book_copy::{copy_book_to_library, CopyBookOptions};
+
+#[derive(Debug, serde::Serialize)]
+pub struct RestoreResult { pub books_restored: u32 }
+
+#[tauri::command]
+pub async fn export_library_backup_cmd(
+    pool:          tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    include_files: bool,
+    out_path:      String,
+    app:           tauri::AppHandle,
+) -> Result<String, String> {
+    let lib_root = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let opts = BackupOptions { include_files, compress: true };
+    export_library_backup(pool.inner().as_ref(), &lib_root, std::path::Path::new(&out_path), &opts)
+        .await.map_err(|e| e.to_string())?;
+    Ok(out_path)
+}
+
+#[tauri::command]
+pub async fn restore_library_backup_cmd(
+    pool:        tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    backup_path: String,
+    app:         tauri::AppHandle,
+) -> Result<RestoreResult, String> {
+    let restore_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let count = restore_library_backup(
+        std::path::Path::new(&backup_path),
+        &restore_dir,
+        pool.inner().as_ref(),
+    ).await.map_err(|e| e.to_string())?;
+    Ok(RestoreResult { books_restored: count })
+}
+
+#[tauri::command]
+pub async fn copy_book_to_library_cmd(
+    pool:       tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    book_id:    String,
+    library_id: String,
+    move_file:  bool,
+) -> Result<String, String> {
+    let opts = CopyBookOptions { move_file };
+    copy_book_to_library(pool.inner().as_ref(), &book_id, &library_id, &opts)
+        .await.map_err(|e| e.to_string())
+}
+
 use xcalibre_processing::convert::{docx, html, txt, pdf, mobi, fb2, rtf, htmlz};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

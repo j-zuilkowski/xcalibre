@@ -146,6 +146,9 @@ fn main() {
             commands::editor_set_cover,
             commands::editor_close,
             commands::ai_list_models,
+            commands::export_library_backup_cmd,
+            commands::restore_library_backup_cmd,
+            commands::copy_book_to_library_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

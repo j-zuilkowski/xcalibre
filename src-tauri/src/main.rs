@@ -29,6 +29,7 @@ fn main() {
             let db_path = app_dir.join("jobs.db");
             let pool = tauri::async_runtime::block_on(async {
                 let pool: SqlitePool = SqlitePoolOptions::new()
+                    .max_connections(1)
                     .connect_with(
                         SqliteConnectOptions::new()
                             .filename(&db_path)

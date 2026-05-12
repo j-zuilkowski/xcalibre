@@ -33,7 +33,8 @@ fn main() {
                     .connect_with(
                         SqliteConnectOptions::new()
                             .filename(&db_path)
-                            .create_if_missing(true),
+                            .create_if_missing(true)
+                            .pragma("foreign_keys", "ON"),
                     )
                     .await
                     .expect("failed to open DB");

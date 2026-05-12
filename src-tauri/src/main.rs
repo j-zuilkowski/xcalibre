@@ -8,6 +8,7 @@ use tauri_plugin_updater::Builder as UpdaterBuilder;
 
 mod commands;
 mod epub_protocol;
+mod spellcheck;
 
 fn main() {
     std::panic::set_hook(Box::new(|info| {

@@ -1,6 +1,17 @@
 use crate::error::ProcessingError;
 use crate::metadata::BookMetadata;
 use std::path::Path;
+use std::sync::OnceLock;
+
+static SEL_CHM_TITLE: OnceLock<scraper::Selector> = OnceLock::new();
+fn sel_chm_title() -> &'static scraper::Selector {
+    SEL_CHM_TITLE.get_or_init(|| scraper::Selector::parse("title").expect("selector"))
+}
+
+static SEL_CHM_META: OnceLock<scraper::Selector> = OnceLock::new();
+fn sel_chm_meta() -> &'static scraper::Selector {
+    SEL_CHM_META.get_or_init(|| scraper::Selector::parse("meta").expect("selector"))
+}
 
 /// CHM (Microsoft HTML Help) — magic bytes: ITSF at offset 0.
 /// Parses the ITSF container via the `chmlib` crate, locates the home/default
@@ -29,7 +40,7 @@ pub fn extract(path: &Path) -> Result<BookMetadata, ProcessingError> {
                             if let Ok(html_str) = std::str::from_utf8(&buf) {
                                 let doc = scraper::Html::parse_document(html_str);
                                 if let Some(title_el) = doc
-                                    .select(&scraper::Selector::parse("title").unwrap())
+                                    .select(sel_chm_title())
                                     .next()
                                 {
                                     let t = title_el
@@ -43,7 +54,7 @@ pub fn extract(path: &Path) -> Result<BookMetadata, ProcessingError> {
                                     }
                                 }
                                 for meta_el in
-                                    doc.select(&scraper::Selector::parse("meta").unwrap())
+                                    doc.select(sel_chm_meta())
                                 {
                                     if let Some(name) = meta_el.value().attr("name") {
                                         if name.eq_ignore_ascii_case("author") {

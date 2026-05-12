@@ -2,14 +2,20 @@ use crate::error::ProcessingError;
 use crate::text::ExtractedText;
 use std::io::Read;
 use std::path::Path;
+use std::sync::OnceLock;
+
+static SEL_CONTENT: OnceLock<scraper::Selector> = OnceLock::new();
+fn sel_content() -> &'static scraper::Selector {
+    SEL_CONTENT.get_or_init(|| scraper::Selector::parse("p, h1, h2, h3, h4, li, td, th").expect("selector"))
+}
 
 pub fn extract(path: &Path) -> Result<ExtractedText, ProcessingError> {
     let content = read_html(path)?;
     let document = scraper::Html::parse_document(&content);
 
-    let sel = scraper::Selector::parse("p, h1, h2, h3, h4, li, td, th").unwrap();
+    let sel = sel_content();
     let mut parts = vec![];
-    for el in document.select(&sel) {
+    for el in document.select(sel) {
         let text = el.text().collect::<String>();
         let trimmed = text.split_whitespace().collect::<Vec<_>>().join(" ");
         if !trimmed.is_empty() {

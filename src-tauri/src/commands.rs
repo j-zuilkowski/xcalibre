@@ -1302,11 +1302,10 @@ pub async fn list_comic_pages(
         if lower.ends_with(".jpg") || lower.ends_with(".jpeg")
             || lower.ends_with(".png") || lower.ends_with(".webp")
         {
-            let out_path = temp_dir.join(
-                std::path::Path::new(&name)
-                    .file_name()
-                    .unwrap_or(std::ffi::OsStr::new(&name)),
-            );
+            let safe_name = std::path::Path::new(&name)
+                .file_name()
+                .ok_or_else(|| format!("unsafe zip entry name: {name}"))?;
+            let out_path = temp_dir.join(safe_name);
             let mut buf = vec![];
             std::io::Read::read_to_end(&mut entry, &mut buf).map_err(|e| e.to_string())?;
             std::fs::write(&out_path, &buf).map_err(|e| e.to_string())?;

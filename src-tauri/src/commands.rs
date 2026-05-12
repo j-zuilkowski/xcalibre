@@ -1279,3 +1279,13 @@ pub async fn get_app_data_dir(
         .map(|p| p.to_string_lossy().into_owned())
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn search_library_advanced(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    query: String,
+) -> Result<Vec<String>, String> {
+    xcalibre_processing::search::execute_query(pool.inner().as_ref(), &query)
+        .await
+        .map_err(|e| e.to_string())
+}

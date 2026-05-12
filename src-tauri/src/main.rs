@@ -109,6 +109,10 @@ fn main() {
             commands::get_app_data_dir,
             commands::delete_library_cmd,
             commands::search_library_advanced,
+            commands::list_plugins_cmd,
+            commands::install_plugin_from_zip,
+            commands::set_plugin_enabled_cmd,
+            commands::uninstall_plugin_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

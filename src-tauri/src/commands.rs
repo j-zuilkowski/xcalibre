@@ -1289,3 +1289,57 @@ pub async fn search_library_advanced(
         .await
         .map_err(|e| e.to_string())
 }
+
+use xcalibre_processing::db::plugin_queries::{
+    install_plugin, list_plugins, set_plugin_enabled, uninstall_plugin,
+    InstalledPlugin, NewPlugin,
+};
+
+#[tauri::command]
+pub async fn list_plugins_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+) -> Result<Vec<InstalledPlugin>, String> {
+    list_plugins(pool.inner().as_ref()).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn install_plugin_from_zip(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    app: tauri::AppHandle,
+    zip_path: String,
+) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let plugins_dir = data_dir.join("plugins");
+    let zip = std::path::Path::new(&zip_path);
+    let meta = xcalibre_processing::plugins::loader::install_plugin_zip(zip, &plugins_dir)
+        .map_err(|e| e.to_string())?;
+    let dylib_path = plugins_dir
+        .join(&meta.name)
+        .to_string_lossy().into_owned();
+    let p = NewPlugin {
+        name: meta.name.clone(), version: meta.version.clone(),
+        api_version: meta.api_version as i64,
+        plugin_type: meta.plugin_type.as_str().to_string(),
+        dylib_path,
+    };
+    install_plugin(pool.inner().as_ref(), &p).await.map_err(|e| e.to_string())?;
+    Ok(meta.name)
+}
+
+#[tauri::command]
+pub async fn set_plugin_enabled_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String, enabled: bool,
+) -> Result<(), String> {
+    set_plugin_enabled(pool.inner().as_ref(), &id, enabled).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn uninstall_plugin_cmd(
+    pool: tauri::State<'_, std::sync::Arc<sqlx::SqlitePool>>,
+    id: String,
+) -> Result<(), String> {
+    let dylib_path = uninstall_plugin(pool.inner().as_ref(), &id).await.map_err(|e| e.to_string())?;
+    let _ = std::fs::remove_file(&dylib_path); // best-effort cleanup
+    Ok(())
+}

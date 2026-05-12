@@ -1,4 +1,4 @@
-use crate::db::{extended_queries, fts_queries, queries};
+use crate::db::{extended_queries, fts_queries, page_count, queries};
 use crate::error::ProcessingError;
 use crate::metadata::BookMetadata;
 use crate::pipeline::{cover, ingest, metadata, text};
@@ -86,6 +86,22 @@ pub async fn import_local_book(
 
     if let Err(err) = text::run_text(pool, &result, path).await {
         warn!(job_id = %result.job_id, error = %err, "text extraction failed; continuing");
+    } else {
+        let word_count: Option<i64> = sqlx::query_as::<_, (Option<i64>,)>(
+            "SELECT word_count FROM job_text WHERE job_id=?"
+        )
+        .bind(&result.job_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .and_then(|r| r.map(|(w,)| w).flatten());
+
+        if let Some(words) = word_count {
+            let pages = ((words as f64) / 250.0).ceil() as u32;
+            if pages > 0 {
+                let _ = page_count::update_book_page_count(pool, &result.job_id, pages).await;
+            }
+        }
     }
     if let Err(err) = fts_queries::refresh_book_index(pool, &result.job_id).await {
         warn!(job_id = %result.job_id, error = %err, "fts refresh failed; continuing");

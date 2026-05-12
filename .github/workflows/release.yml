@@ -64,7 +64,7 @@ jobs:
             patchelf
 
       - name: Install UI dependencies
-        run: cd ui && npm ci
+        run: cd ui && npm install
 
       - name: Build and upload release
         uses: tauri-apps/tauri-action@v0

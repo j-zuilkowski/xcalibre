@@ -19,3 +19,5 @@ pub mod search;
 pub mod spellcheck;
 pub mod convert;
 pub mod editor;
+pub mod polish;
+pub mod stats;

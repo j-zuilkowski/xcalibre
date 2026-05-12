@@ -143,6 +143,7 @@ pub async fn get_book_details(
 }
 
 #[tauri::command]
+
 pub async fn update_book_details(
     pool: tauri::State<'_, Arc<SqlitePool>>,
     book_ids: Vec<String>,
@@ -189,45 +190,132 @@ pub async fn update_book_details(
         .filter(|tag| !tag.is_empty())
         .collect();
 
+    let pool = pool.inner().as_ref();
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
     for book_id in &book_ids {
-        xcalibre_processing::db::extended_queries::replace_book_details(
-            pool.inner().as_ref(),
-            book_id,
-            title,
-            &authors,
-            &title_sort_value,
-            &author_sort_value,
-            pubdate.as_deref(),
-            description.as_deref(),
-            publisher.as_deref(),
-            series_name.as_deref(),
-            details.series_index,
-            rating,
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string();
+        let authors_json = serde_json::to_string(&authors)
+            .map_err(|e| e.to_string())?;
+
+        // UPDATE local_books
+        sqlx::query(
+            "UPDATE local_books SET
+                 title       = ?,
+                 authors_json = ?,
+                 title_sort  = ?,
+                 author_sort = ?,
+                 pubdate     = ?,
+                 description = ?,
+                 publisher   = ?,
+                 series_name = ?,
+                 series_index = ?,
+                 rating      = ?,
+                 updated_at  = ?
+             WHERE id = ?"
         )
+        .bind(title)
+        .bind(&authors_json)
+        .bind(&title_sort_value)
+        .bind(&author_sort_value)
+        .bind(pubdate.as_deref())
+        .bind(description.as_deref())
+        .bind(publisher.as_deref())
+        .bind(series_name.as_deref())
+        .bind(details.series_index)
+        .bind(rating)
+        .bind(&now)
+        .bind(book_id)
+        .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
-        xcalibre_processing::db::extended_queries::replace_tags(
-            pool.inner().as_ref(),
-            book_id,
-            &tag_values,
+
+        // DELETE existing tags
+        sqlx::query("DELETE FROM book_tags WHERE book_id = ?")
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // INSERT new tags
+        for tag in &tag_values {
+            sqlx::query("INSERT OR IGNORE INTO tags (name) VALUES (?)")
+                .bind(tag)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| e.to_string())?;
+            sqlx::query(
+                "INSERT OR IGNORE INTO book_tags (book_id, tag_id)
+                 SELECT ?, id FROM tags WHERE name = ?"
+            )
+            .bind(book_id)
+            .bind(tag)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+        }
+
+        // DELETE existing identifiers
+        sqlx::query("DELETE FROM identifiers WHERE book_id = ?")
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // INSERT new identifiers
+        for identifier in &identifiers {
+            if identifier.id_type.trim().is_empty() || identifier.value.trim().is_empty() {
+                continue;
+            }
+            sqlx::query(
+                "INSERT INTO identifiers (book_id, type, value) VALUES (?, ?, ?)"
+            )
+            .bind(book_id)
+            .bind(&identifier.id_type)
+            .bind(&identifier.value)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+        }
+
+        // Refresh FTS index
+        let fts_row: Option<(String, String, Option<String>, Option<String>)> = sqlx::query_as(
+            "SELECT lb.title, lb.authors_json, lb.description, jt.full_text
+             FROM local_books lb
+             LEFT JOIN job_text jt ON jt.job_id = lb.id
+             WHERE lb.id = ?"
         )
+        .bind(book_id)
+        .fetch_optional(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
-        xcalibre_processing::db::extended_queries::replace_identifiers(
-            pool.inner().as_ref(),
-            book_id,
-            &identifiers,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-        xcalibre_processing::db::fts_queries::refresh_book_index(
-            pool.inner().as_ref(),
-            book_id,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+
+        if let Some((fts_title, fts_authors_json, fts_description, fts_full_text)) = fts_row {
+            sqlx::query(
+                "DELETE FROM books_fts WHERE rowid IN
+                 (SELECT rowid FROM books_fts WHERE book_id = ?)"
+            )
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+
+            sqlx::query(
+                "INSERT INTO books_fts (book_id, title, authors, description, full_text)
+                 VALUES (?, ?, ?, ?, ?)"
+            )
+            .bind(book_id)
+            .bind(&fts_title)
+            .bind(&fts_authors_json)
+            .bind(fts_description.as_deref().unwrap_or(""))
+            .bind(fts_full_text.as_deref().unwrap_or(""))
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+        }
     }
 
+    tx.commit().await.map_err(|e| e.to_string())?;
     Ok(book_ids.len())
 }
 

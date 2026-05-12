@@ -90,3 +90,6 @@ path = "tests/test_plugin_sdk.rs"
 [[test]]
 name = "test_plugin_loader"
 path = "tests/test_plugin_loader.rs"
+[[test]]
+name = "test_plugin_db"
+path = "tests/test_plugin_db.rs"

@@ -1,6 +1,4 @@
 use crate::error::ProcessingError;
-use std::io::{Read, Write};
-use std::path::Path;
 use xcalibre_epub::Container;
 
 pub fn epub_to_kepub(epub_path: &Path, out_path: &Path) -> Result<(), ProcessingError> {

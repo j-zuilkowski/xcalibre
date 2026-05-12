@@ -320,13 +320,33 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. Open a book with known author/series/tags (e.g. first in a series)
 3. Scroll down in the detail panel — verify "Similar Books" section appears
 4. Verify same-series books appear first (highest score)
 5. Verify same-author books appear next
 6. Click a similar book — verify it opens that book's detail view
 7. For a book with no metadata, verify "No similar books found" message
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

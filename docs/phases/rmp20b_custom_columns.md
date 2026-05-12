@@ -489,13 +489,33 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. Open Settings → Custom Columns
 3. Click "+ Add Column" → name: "my_rating", label: "My Rating", type: "integer" → Add
 4. Verify "My Rating" appears in the column list
 5. Open a book's detail panel → scroll to Custom section → enter a rating value → verify it saves
 6. Open another book → verify its custom field is empty (not carrying over)
 7. Return to Custom Columns → Delete the column → verify it disappears from book detail panels
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

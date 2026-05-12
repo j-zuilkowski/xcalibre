@@ -407,7 +407,23 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. Open an EPUB book and trigger AI chat (Ctrl+Alt+A)
 3. Ask: "What is the main theme of this book?"
 4. Verify AI response appears with citation count badge (if chunks are available)
@@ -415,6 +431,10 @@ cd ui && npm test && cd ..
 6. Change reasoning budget to "High" and ask again — verify response is more detailed
 7. Click "Save as Note" on a response — verify it appears in the book's Notes tab
 8. Change reasoning budget to "None" — verify responses are more direct/brief
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

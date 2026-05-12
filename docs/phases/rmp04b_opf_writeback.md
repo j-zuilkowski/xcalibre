@@ -310,6 +310,10 @@ cd ui && npm run build && npm test && cd ..
 4. Re-import the book into Calibre and verify the title change is reflected
 
 ```bash
+pkill -x xcalibre 2>/dev/null || true
+```
+
+```bash
 git add -A
 git commit -m "R04b-T04: RMP-04 OPF write-back — all tests green, round-trip verified"
 ```

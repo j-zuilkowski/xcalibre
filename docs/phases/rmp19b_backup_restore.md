@@ -573,7 +573,23 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. Open Settings → Backup & Restore
 3. Click "Export Backup" → save to Desktop as `test.xcalibre`
 4. Open the file in Finder → Show Info → verify it's a ZIP file
@@ -581,6 +597,10 @@ cd ui && npm test && cd ..
 6. Delete a book from the library, then restore from backup
 7. Verify the deleted book reappears after restore
 8. Test cross-library copy: right-click a book → "Copy to Library…" → select target → verify it appears
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

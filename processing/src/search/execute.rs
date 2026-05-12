@@ -14,7 +14,7 @@ pub async fn execute_query(pool: &SqlitePool, query: &str) -> Result<Vec<String>
 fn collect_ids<'a>(
     pool: &'a SqlitePool,
     node: &'a QueryNode,
-) -> Pin<Box<dyn Future<Output = Result<Vec<String>, ProcessingError>> + 'a>> {
+) -> Pin<Box<dyn Future<Output = Result<Vec<String>, ProcessingError>> + Send + 'a>> {
     Box::pin(async move {
         match node {
             QueryNode::FtsTerm(term) => {

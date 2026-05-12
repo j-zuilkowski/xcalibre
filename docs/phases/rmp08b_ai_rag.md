@@ -702,15 +702,7 @@ cd ui && npm run build && npm test && cd ..
 ```
 
 **Visual inspection (requires Ollama running locally):**
-```bash
-# Start Ollama if not running
-ollama serve &
-ollama pull llama3
-ollama pull nomic-embed-text
-
-cargo tauri dev 2>&1 &
-sleep 8
-```
+> **HUMAN STEP — do not execute autonomously. Launch `cargo tauri dev` manually and verify the checklist below.**
 
 Verify:
 - [ ] Ingest an EPUB — check that book_chunks are created in the DB
@@ -720,6 +712,10 @@ Verify:
 - [ ] Typing a custom question and pressing Enter sends a message
 - [ ] Conversation history accumulates correctly
 - [ ] Without Ollama running: shows an error message (not a crash)
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

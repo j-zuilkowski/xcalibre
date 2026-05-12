@@ -244,6 +244,10 @@ If you have a real `.kfx` file (from a Kindle device or Amazon download tool):
 4. Open book details — word count should be populated
 
 ```bash
+pkill -x xcalibre 2>/dev/null || true
+```
+
+```bash
 git add -A
 git commit -m "R07b-T05: RMP-07 KFX format — all tests green, pipeline wired"
 ```

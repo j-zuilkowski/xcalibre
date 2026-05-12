@@ -359,13 +359,33 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. Import a new EPUB — check console or DB: verify `page_count` is populated
 3. Open a book's detail panel — verify "Book Statistics" shows page count
 4. Open a book in the reader — start reading, then close
 5. Reopen the book detail panel — verify reading session appears under "Reading History"
 6. Verify `ReadingProgressBar` shows correct fill color (green at 100%, blue otherwise)
 7. Verify progress percentage is persisted between app restarts
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

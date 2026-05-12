@@ -321,7 +321,23 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. Right-click an EPUB → "Convert…"
 3. Verify PDF and MOBI appear in the format selector
 4. Select PDF → Convert → open resulting file in Preview, verify it renders
@@ -329,6 +345,10 @@ cd ui && npm test && cd ..
    - If Calibre is installed, open in Kindle app to verify MOBI structure
    - If not, verify file size > 1000 bytes
 6. Verify error message appears for formats when tool is not available (e.g. no Chrome for PDF)
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

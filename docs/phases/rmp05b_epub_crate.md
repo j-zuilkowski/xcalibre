@@ -457,6 +457,10 @@ All tests green. Zero warnings.
 6. Run `upgrade::epub2_to_epub3` — save as new file, verify it opens
 
 ```bash
+pkill -x xcalibre 2>/dev/null || true
+```
+
+```bash
 git add -A
 git commit -m "R05b-T11: RMP-05 xcalibre-epub — all tests green, integration smoke verified"
 ```

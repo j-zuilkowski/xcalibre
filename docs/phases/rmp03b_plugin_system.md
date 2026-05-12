@@ -488,8 +488,19 @@ cd ui && npm run build && npm test && cd ..
 
 **Visual inspection:**
 ```bash
-cargo tauri dev 2>&1 &
-sleep 8
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
 ```
 
 Verify:
@@ -498,6 +509,10 @@ Verify:
 - [ ] "Install plugin from ZIP…" button opens file picker
 - [ ] Installing a ZIP with wrong API version shows an error toast (not a crash)
 - [ ] Enable/Disable toggle visually flips
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

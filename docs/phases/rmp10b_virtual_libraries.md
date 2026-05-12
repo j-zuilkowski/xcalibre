@@ -578,7 +578,23 @@ cd ui && npm test && cd ..
 ```
 
 **Visual inspection:**
-1. Launch the app: `cd src-tauri && cargo tauri dev`
+```bash
+pkill -x xcalibre 2>/dev/null || true
+cargo tauri dev &>/tmp/xcalibre_tauri_dev.log &
+# Poll until xcalibre process appears — first-run compilation can take 3-5 min
+for i in $(seq 1 30); do
+  sleep 10
+  if pgrep -x xcalibre > /dev/null 2>&1; then
+    echo "xcalibre running after $((i*10))s"
+    sleep 3
+    break
+  fi
+  echo "Waiting for xcalibre… $((i*10))s elapsed"
+  [ "$i" -eq 30 ] && echo "ERROR: xcalibre did not launch within 5 minutes" && exit 1
+done
+```
+
+1. Verify the UI:
 2. In the sidebar, locate the "Virtual Libraries" section
 3. Click "+ Add" — verify VirtualLibraryEditor dialog appears
 4. Enter name "Science Fiction" and search expression "tag:sci-fi" → Save
@@ -586,6 +602,10 @@ cd ui && npm test && cd ..
 6. Click "Science Fiction" — verify book grid filters to matching books
 7. Right-click virtual library → Edit — verify editor pre-fills with saved values
 8. Delete a virtual library — verify it disappears from sidebar
+
+```bash
+pkill -x xcalibre 2>/dev/null || true
+```
 
 ```bash
 git add -A

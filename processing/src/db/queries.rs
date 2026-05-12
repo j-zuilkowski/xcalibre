@@ -445,3 +445,56 @@ pub async fn get_collection_books(
         })
         .collect())
 }
+
+use crate::opf::{write_opf_sidecar, OPFMetadata};
+use crate::metadata::BookMetadata;
+
+pub async fn update_book_metadata_with_opf(
+    pool: &SqlitePool,
+    book_id: &str,
+    meta: &BookMetadata,
+) -> Result<(), ProcessingError> {
+    let authors_json = serde_json::to_string(&meta.authors)
+        .map_err(|e| ProcessingError::MetadataError(e.to_string()))?;
+    let _tags_json = serde_json::to_string(let tags_json = serde_json::to_string(&meta.tags)meta.tags)
+        .map_err(|e| ProcessingError::MetadataError(e.to_string()))?;
+    let now = chrono::Utc::now().to_rfc3339();
+
+    sqlx::query(
+        "UPDATE local_books SET title=COALESCE(?,title), authors_json=?, publisher=?,
+         series_name=?, series_index=?, description=?, updated_at=?
+         WHERE id=?",
+    )
+    .bind(&meta.title).bind(&authors_json).bind(&meta.publisher)
+    .bind(&meta.series).bind(meta.series_index).bind(&meta.description)
+    .bind(&now).bind(book_id)
+    .execute(pool).await.map_err(ProcessingError::DbError)?;
+
+    // Write OPF sidecar if a file_path is known
+    let row: Option<(String,)> = sqlx::query_as(
+        "SELECT local_path FROM local_books WHERE id = ?",
+    )
+    .bind(book_id)
+    .fetch_optional(pool).await.map_err(ProcessingError::DbError)?;
+
+    if let Some((file_path,)) = row {
+        if let Some(book_dir) = std::path::Path::new(&file_path).parent() {
+            let opf_path = book_dir.join("metadata.opf");
+            let opf_meta = OPFMetadata {
+                title:        meta.title.clone(),
+                authors:      meta.authors.clone(),
+                language:     meta.language.clone(),
+                publisher:    meta.publisher.clone(),
+                published:    meta.published.clone(),
+                description:  meta.description.clone(),
+                isbn:         meta.isbn.clone(),
+                series:       meta.series.clone(),
+                series_index: meta.series_index,
+                tags:         meta.tags.clone(),
+                calibre_id:   None,
+            };
+            let _ = write_opf_sidecar(&opf_path, &opf_meta); // best-effort; don't fail the update
+        }
+    }
+    Ok(())
+}

@@ -20,14 +20,17 @@ async fn test_opf_written_on_metadata_update() {
     std::fs::create_dir_all(&book_dir).unwrap();
     let book_path = book_dir.join("book.epub");
     std::fs::write(&book_path, b"placeholder").unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
 
-    // Insert a book with a known file_path inside book_dir
+    // Insert a book with a known local_path inside book_dir
     sqlx::query(
-        "INSERT INTO local_books (id, title, authors_json, format, file_path,
-          file_sha256, status, progress_percent) VALUES ('bk1','Old','[\"A\"]','EPUB',?,
-          'sha1','READY',0)",
+        "INSERT INTO local_books (id, title, authors_json, format, local_path,
+          progress_percent, created_at, updated_at) VALUES ('bk1','Old','[\"A\"]','EPUB',?,
+          0, ?, ?)",
     )
     .bind(book_path.to_string_lossy().as_ref())
+    .bind(&now)
+    .bind(&now)
     .execute(&pool).await.unwrap();
 
     let meta = BookMetadata {

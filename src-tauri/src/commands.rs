@@ -1061,7 +1061,17 @@ pub async fn bulk_reingest_books(
 }
 
 #[tauri::command]
+fn csv_escape(s: &str) -> String {
+    if s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r') {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_string()
+    }
+}
+
+#[tauri::command]
 pub async fn bulk_export_metadata(
+
     pool: tauri::State<'_, Arc<SqlitePool>>,
     book_ids: Vec<String>,
 ) -> Result<String, String> {
@@ -1099,15 +1109,15 @@ pub async fn bulk_export_metadata(
         let authors: Vec<String> = serde_json::from_str(&authors_json).unwrap_or_default();
         csv.push_str(&format!(
             "{},{},{},{},{},{},{},{},{}\n",
-            id,
-            title.replace(',', ";"),
-            authors.join(";").replace(',', ";"),
-            format,
-            publisher.unwrap_or_default(),
-            series_name.unwrap_or_default(),
+            csv_escape(&id),
+            csv_escape(&title),
+            csv_escape(&authors.join("; ")),
+            csv_escape(&format),
+            csv_escape(publisher.as_deref().unwrap_or("")),
+            csv_escape(series_name.as_deref().unwrap_or("")),
             series_index.map(|f| f.to_string()).unwrap_or_default(),
-            pubdate.unwrap_or_default(),
-            description.unwrap_or_default(),
+            csv_escape(pubdate.as_deref().unwrap_or("")),
+            csv_escape(description.as_deref().unwrap_or("")),
         ));
     }
     Ok(csv)

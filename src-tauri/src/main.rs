@@ -23,6 +23,12 @@ fn main() {
 
     tauri::Builder::default()
         .setup(|app| {
+            // The updater plugin fails to initialise, and panics the whole app,
+            // when tauri.conf.json has no `plugins.updater` section. Only
+            // register it once a signing pubkey and endpoints are configured.
+            if app.config().plugins.0.contains_key("updater") {
+                app.handle().plugin(UpdaterBuilder::new().build())?;
+            }
             let app_dir = app.path().app_data_dir()
                 .expect("failed to get app data dir");
             std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
@@ -51,7 +57,6 @@ fn main() {
         .register_uri_scheme_protocol("epub", |ctx, req| {
             epub_protocol::epub_handler(ctx.app_handle(), req)
         })
-        .plugin(UpdaterBuilder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::list_books,
             commands::get_library,
